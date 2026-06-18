@@ -99,6 +99,23 @@ const finishStats = document.getElementById("finishStats");
 
 const VIEW = { width: 1280, height: 720 };
 const FLOOR_Y = 612;
+const PIXEL = 2;
+const PALETTE = {
+  ink: "#111827",
+  sky1: "#60a5fa",
+  sky2: "#7dd3fc",
+  sky3: "#bae6fd",
+  grass: "#4ade80",
+  grassDark: "#15803d",
+  dirt: "#92400e",
+  dirtDark: "#713f12",
+  wood: "#78350f",
+  gold: "#facc15",
+  goldDark: "#b45309",
+  cloud: "#f8fafc",
+};
+
+ctx.imageSmoothingEnabled = false;
 
 let keys = { left: false, right: false, jump: false };
 let cameraX = 0;
@@ -412,12 +429,15 @@ function draw() {
 }
 
 function drawSky() {
-  const gradient = ctx.createLinearGradient(0, 0, 0, VIEW.height);
-  gradient.addColorStop(0, "#7dd3fc");
-  gradient.addColorStop(0.58, "#bae6fd");
-  gradient.addColorStop(1, "#fef3c7");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, VIEW.width, VIEW.height);
+  pixelRect(0, 0, VIEW.width, 150, PALETTE.sky1);
+  pixelRect(0, 150, VIEW.width, 190, PALETTE.sky2);
+  pixelRect(0, 340, VIEW.width, 200, PALETTE.sky3);
+  pixelRect(0, 540, VIEW.width, 180, "#fde68a");
+  for (let y = 48; y < 540; y += 64) {
+    for (let x = (y / 2) % 32; x < VIEW.width; x += 96) {
+      pixelRect(x, y, 2, 2, "rgba(255,255,255,0.24)");
+    }
+  }
 
   drawSun(1040 - cameraX * 0.03, 110);
   drawCloud(190 - cameraX * 0.12, 110, 1.1);
@@ -428,12 +448,9 @@ function drawSky() {
 
 function drawParallax() {
   // Дальние холмы.
-  ctx.fillStyle = "#65a30d";
   for (let i = -1; i < 12; i += 1) {
     const x = i * 520 - (cameraX * 0.18) % 520;
-    ctx.beginPath();
-    ctx.ellipse(x + 260, FLOOR_Y + 30, 330, 170, 0, Math.PI, 0);
-    ctx.fill();
+    pixelHill(x + 260, FLOOR_Y + 56, 340, 152, "#65a30d", "#4d7c0f");
   }
 
   // Ближние деревья.
@@ -492,19 +509,18 @@ function drawPlatforms() {
     if (x + p.w < -50 || x > VIEW.width + 50) return;
 
     if (p.type === "ground") {
-      ctx.fillStyle = "#7c4a20";
-      roundRect(x, p.y, p.w, p.h, 0, true);
-      ctx.fillStyle = "#22c55e";
-      roundRect(x, p.y - 18, p.w, 28, 12, true);
-      ctx.fillStyle = "rgba(255,255,255,0.15)";
-      for (let i = 20; i < p.w; i += 80) {
-        ctx.fillRect(x + i, p.y + 24, 42, 8);
+      pixelRect(x, p.y, p.w, p.h, PALETTE.dirt);
+      pixelRect(x, p.y - 20, p.w, 24, PALETTE.grass);
+      pixelRect(x, p.y + 8, p.w, 10, PALETTE.dirtDark);
+      for (let i = 0; i < p.w; i += 32) {
+        pixelRect(x + i + 4, p.y - 16, 12, 8, "#86efac");
+        pixelRect(x + i + 10, p.y + 30, 14, 6, "#a16207");
+        pixelRect(x + i + 2, p.y + 58, 8, 6, PALETTE.dirtDark);
       }
     } else {
-      ctx.fillStyle = "#92400e";
-      roundRect(x, p.y, p.w, p.h, 10, true);
-      ctx.fillStyle = "#f59e0b";
-      roundRect(x, p.y - 7, p.w, 12, 8, true);
+      pixelRect(x, p.y, p.w, p.h, PALETTE.wood);
+      pixelRect(x, p.y - 8, p.w, 12, "#f59e0b");
+      for (let i = 16; i < p.w; i += 48) pixelRect(x + i, p.y + 10, 24, 5, "#92400e");
     }
   });
 }
@@ -516,20 +532,10 @@ function drawCoins() {
     const x = coin.x - cameraX;
     if (x < -60 || x > VIEW.width + 60) return;
     const bob = Math.sin(t * 4 + coin.x * 0.03) * 6;
-    ctx.save();
-    ctx.translate(x, coin.y + bob);
-    ctx.fillStyle = "#facc15";
-    ctx.beginPath();
-    ctx.ellipse(0, 0, coin.r * 0.75, coin.r, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#b45309";
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.fillStyle = "#fff7ad";
-    ctx.beginPath();
-    ctx.ellipse(-4, -5, 4, 7, 0.4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    const cy = coin.y + bob;
+    pixelRect(x - 10, cy - 14, 20, 28, PALETTE.goldDark);
+    pixelRect(x - 14, cy - 10, 28, 20, PALETTE.gold);
+    pixelRect(x - 5, cy - 6, 6, 12, "#fff7ad");
   });
 }
 
@@ -538,58 +544,32 @@ function drawPlayer() {
   const x = p.x - cameraX;
   const y = p.y;
   const cfg = CONFIG.player;
-  const legOffset = Math.sin(p.walkTime) * 6;
+  const step = p.grounded && Math.abs(p.vx) > 30 ? Math.sign(Math.sin(p.walkTime)) * 2 : 0;
 
   ctx.save();
   ctx.translate(x + p.w / 2, y + p.h / 2);
   ctx.scale(p.direction, 1);
   ctx.translate(-p.w / 2, -p.h / 2);
 
-  // Ноги.
-  ctx.fillStyle = cfg.pants;
-  roundRect(10, 54, 12, 30 + legOffset * 0.25, 5, true);
-  roundRect(27, 54, 12, 30 - legOffset * 0.25, 5, true);
-  ctx.fillStyle = "#0f172a";
-  roundRect(6, 80 + Math.max(0, legOffset * 0.12), 18, 8, 4, true);
-  roundRect(25, 80 - Math.min(0, legOffset * 0.12), 18, 8, 4, true);
-
-  // Тело.
-  ctx.fillStyle = cfg.shirt;
-  roundRect(7, 32, 36, 34, 10, true);
-  ctx.fillStyle = "rgba(255,255,255,0.32)";
-  roundRect(14, 39, 20, 5, 4, true);
-
-  // Голова.
-  ctx.fillStyle = cfg.skin;
-  ctx.beginPath();
-  ctx.arc(25, 20, 17, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Волосы.
-  ctx.fillStyle = cfg.hair;
-  ctx.beginPath();
-  ctx.arc(23, 12, 16, Math.PI, Math.PI * 2);
-  ctx.fill();
-  roundRect(10, 11, 30, 10, 8, true);
-
-  // Лицо.
-  ctx.fillStyle = "#111827";
-  ctx.beginPath();
-  ctx.arc(31, 21, 2.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#7c2d12";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(30, 28, 4, 0.1, Math.PI - 0.1);
-  ctx.stroke();
+  pixelRect(8, 56, 12, 28 + step, cfg.pants);
+  pixelRect(28, 56, 12, 28 - step, cfg.pants);
+  pixelRect(4, 82 + Math.max(0, step), 18, 8, PALETTE.ink);
+  pixelRect(26, 82 - Math.min(0, step), 18, 8, PALETTE.ink);
+  pixelRect(7, 32, 36, 30, cfg.shirt);
+  pixelRect(13, 38, 20, 5, "rgba(255,255,255,0.32)");
+  pixelRect(12, 10, 28, 24, cfg.skin);
+  pixelRect(10, 6, 30, 10, cfg.hair);
+  pixelRect(8, 14, 10, 10, cfg.hair);
+  pixelRect(30, 20, 3, 3, PALETTE.ink);
+  pixelRect(29, 29, 9, 4, "#7c2d12");
 
   ctx.restore();
 
   // Имя над персонажем.
   ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
-  roundRect(x - 8, y - 30, p.w + 16, 22, 11, true);
+  pixelRect(x - 8, y - 30, p.w + 16, 22, "rgba(15, 23, 42, 0.78)");
   ctx.fillStyle = "#ffffff";
-  ctx.font = "700 13px Inter, sans-serif";
+  ctx.font = "700 13px Courier New, monospace";
   ctx.textAlign = "center";
   ctx.fillText(CONFIG.player.name, x + p.w / 2, y - 15);
 }
@@ -599,9 +579,7 @@ function drawParticles() {
     const x = p.x - cameraX;
     ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
     ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
+    pixelRect(x, p.y, p.size, p.size, p.color);
     ctx.globalAlpha = 1;
   });
 }
@@ -610,33 +588,28 @@ function drawFinishGate() {
   const x = CONFIG.worldWidth - 280 - cameraX;
   if (x < -200 || x > VIEW.width + 200) return;
 
-  ctx.fillStyle = "#7c3aed";
-  roundRect(x, FLOOR_Y - 170, 120, 170, 20, true);
-  ctx.fillStyle = "#c4b5fd";
-  roundRect(x + 22, FLOOR_Y - 128, 76, 128, 38, true);
+  pixelRect(x, FLOOR_Y - 170, 120, 170, "#7c3aed");
+  pixelRect(x + 22, FLOOR_Y - 128, 76, 128, "#c4b5fd");
+  pixelRect(x + 34, FLOOR_Y - 112, 52, 112, "#8b5cf6");
   ctx.fillStyle = "#facc15";
-  ctx.font = "900 54px Inter, sans-serif";
+  ctx.font = "900 54px Courier New, monospace";
   ctx.textAlign = "center";
   ctx.fillText("★", x + 60, FLOOR_Y - 92);
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 20px Inter, sans-serif";
+  ctx.font = "900 20px Courier New, monospace";
   ctx.fillText("ФИНИШ", x + 60, FLOOR_Y - 28);
 }
 
 function drawForeground() {
-  // Лёгкая виньетка.
-  const gradient = ctx.createRadialGradient(
-    VIEW.width / 2,
-    VIEW.height / 2,
-    VIEW.height * 0.3,
-    VIEW.width / 2,
-    VIEW.height / 2,
-    VIEW.height * 0.85
-  );
-  gradient.addColorStop(0, "rgba(255,255,255,0)");
-  gradient.addColorStop(1, "rgba(15,23,42,0.10)");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, VIEW.width, VIEW.height);
+  for (let x = -((cameraX * 0.9) % 72); x < VIEW.width; x += 72) {
+    pixelRect(x, FLOOR_Y - 14, 10, 14, "#166534");
+    pixelRect(x + 18, FLOOR_Y - 20, 8, 20, "#15803d");
+    pixelRect(x + 42, FLOOR_Y - 12, 14, 12, "#166534");
+  }
+  pixelRect(0, 0, VIEW.width, 8, "rgba(15,23,42,0.18)");
+  pixelRect(0, VIEW.height - 8, VIEW.width, 8, "rgba(15,23,42,0.18)");
+  pixelRect(0, 0, 8, VIEW.height, "rgba(15,23,42,0.18)");
+  pixelRect(VIEW.width - 8, 0, 8, VIEW.height, "rgba(15,23,42,0.18)");
 }
 
 function drawGiftScene(x, baseY) {
@@ -647,14 +620,13 @@ function drawGiftScene(x, baseY) {
 function drawUniversity(x, baseY, index) {
   const colors = ["#2563eb", "#16a34a", "#ea580c"];
   const color = colors[index % colors.length];
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  roundRect(x - 170, baseY - 255, 340, 255, 16, true);
-  ctx.fillStyle = color;
-  ctx.fillRect(x - 185, baseY - 255, 370, 24);
-  ctx.fillStyle = "#334155";
+  pixelRect(x - 170, baseY - 255, 340, 255, "#f8fafc");
+  pixelRect(x - 185, baseY - 255, 370, 24, color);
   for (let i = -120; i <= 120; i += 80) {
-    roundRect(x + i - 18, baseY - 195, 36, 56, 7, true);
-    roundRect(x + i - 18, baseY - 110, 36, 56, 7, true);
+    pixelRect(x + i - 18, baseY - 195, 36, 56, "#334155");
+    pixelRect(x + i - 18, baseY - 110, 36, 56, "#334155");
+    pixelRect(x + i - 12, baseY - 189, 24, 8, "#bfdbfe");
+    pixelRect(x + i - 12, baseY - 104, 24, 8, "#bfdbfe");
   }
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -664,22 +636,21 @@ function drawUniversity(x, baseY, index) {
   ctx.closePath();
   ctx.fill();
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 34px Inter, sans-serif";
+  ctx.font = "900 34px Courier New, monospace";
   ctx.textAlign = "center";
   ctx.fillText("УНИ", x, baseY - 272);
 }
 
 function drawOffice(x, baseY) {
-  ctx.fillStyle = "#1e40af";
-  roundRect(x - 150, baseY - 320, 300, 320, 14, true);
-  ctx.fillStyle = "#93c5fd";
+  pixelRect(x - 150, baseY - 320, 300, 320, "#1e40af");
   for (let row = 0; row < 6; row += 1) {
     for (let col = 0; col < 4; col += 1) {
-      roundRect(x - 108 + col * 58, baseY - 275 + row * 42, 34, 24, 5, true);
+      pixelRect(x - 108 + col * 58, baseY - 275 + row * 42, 34, 24, "#93c5fd");
+      pixelRect(x - 102 + col * 58, baseY - 269 + row * 42, 10, 5, "#dbeafe");
     }
   }
   ctx.fillStyle = "#22c55e";
-  ctx.font = "900 46px Inter, sans-serif";
+  ctx.font = "900 46px Courier New, monospace";
   ctx.textAlign = "center";
   ctx.fillText("С", x, baseY - 338);
 }
@@ -687,33 +658,18 @@ function drawOffice(x, baseY) {
 function drawFriends(x, baseY) {
   drawSimplePerson(x - 70, baseY - 84, "#2563eb", "#f2c49b");
   drawSimplePerson(x + 50, baseY - 84, "#fb7185", "#f6d0a4");
-  ctx.strokeStyle = "#0f172a";
-  ctx.lineWidth = 7;
-  ctx.beginPath();
-  ctx.moveTo(x - 35, baseY - 55);
-  ctx.quadraticCurveTo(x, baseY - 22, x + 32, baseY - 55);
-  ctx.stroke();
+  pixelRect(x - 34, baseY - 56, 18, 8, PALETTE.ink);
+  pixelRect(x - 18, baseY - 48, 36, 8, PALETTE.ink);
+  pixelRect(x + 18, baseY - 56, 18, 8, PALETTE.ink);
 }
 
 function drawCarScene(x, baseY) {
-  ctx.fillStyle = "#334155";
-  ctx.fillRect(x - 220, baseY - 26, 440, 10);
-  ctx.strokeStyle = "rgba(255,255,255,0.8)";
-  ctx.lineWidth = 4;
-  for (let i = -190; i < 210; i += 70) {
-    ctx.beginPath();
-    ctx.moveTo(x + i, baseY - 21);
-    ctx.lineTo(x + i + 38, baseY - 21);
-    ctx.stroke();
-  }
-
-  ctx.fillStyle = "#ef4444";
-  roundRect(x - 120, baseY - 92, 240, 62, 18, true);
-  ctx.fillStyle = "#fca5a5";
-  roundRect(x - 62, baseY - 130, 108, 52, 14, true);
-  ctx.fillStyle = "#bfdbfe";
-  roundRect(x - 50, baseY - 122, 42, 34, 8, true);
-  roundRect(x, baseY - 122, 38, 34, 8, true);
+  pixelRect(x - 220, baseY - 28, 440, 12, "#334155");
+  for (let i = -190; i < 210; i += 70) pixelRect(x + i, baseY - 24, 38, 4, "#f8fafc");
+  pixelRect(x - 120, baseY - 92, 240, 62, "#ef4444");
+  pixelRect(x - 70, baseY - 130, 116, 44, "#fca5a5");
+  pixelRect(x - 50, baseY - 122, 42, 28, "#bfdbfe");
+  pixelRect(x, baseY - 122, 38, 28, "#bfdbfe");
   drawWheel(x - 72, baseY - 28);
   drawWheel(x + 78, baseY - 28);
 }
@@ -722,8 +678,7 @@ function drawPlaneScene(x, baseY) {
   ctx.save();
   ctx.translate(x, baseY - 245);
   ctx.rotate(-0.14);
-  ctx.fillStyle = "#f8fafc";
-  roundRect(-145, -22, 290, 44, 22, true);
+  pixelRect(-145, -22, 290, 44, "#f8fafc");
   ctx.fillStyle = "#2563eb";
   ctx.beginPath();
   ctx.moveTo(-20, 10);
@@ -748,8 +703,7 @@ function drawPlaneScene(x, baseY) {
 }
 
 function drawHomeScene(x, baseY) {
-  ctx.fillStyle = "#fef3c7";
-  roundRect(x - 145, baseY - 210, 290, 210, 16, true);
+  pixelRect(x - 145, baseY - 210, 290, 210, "#fef3c7");
   ctx.fillStyle = "#fb7185";
   ctx.beginPath();
   ctx.moveTo(x - 185, baseY - 210);
@@ -757,56 +711,41 @@ function drawHomeScene(x, baseY) {
   ctx.lineTo(x + 185, baseY - 210);
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = "#92400e";
-  roundRect(x - 34, baseY - 92, 68, 92, 10, true);
-  ctx.fillStyle = "#60a5fa";
-  roundRect(x - 110, baseY - 168, 58, 54, 8, true);
-  roundRect(x + 52, baseY - 168, 58, 54, 8, true);
+  pixelRect(x - 34, baseY - 92, 68, 92, "#92400e");
+  pixelRect(x - 110, baseY - 168, 58, 54, "#60a5fa");
+  pixelRect(x + 52, baseY - 168, 58, 54, "#60a5fa");
 }
 
 function drawSign(x, y, title, number) {
-  ctx.fillStyle = "#78350f";
-  roundRect(x - 7, y + 48, 14, 95, 5, true);
-  ctx.fillStyle = "rgba(255,255,255,0.92)";
-  roundRect(x - 155, y, 310, 70, 16, true);
-  ctx.strokeStyle = "rgba(120,53,15,0.45)";
-  ctx.lineWidth = 3;
-  roundRect(x - 155, y, 310, 70, 16, false);
+  pixelRect(x - 7, y + 48, 14, 95, PALETTE.wood);
+  pixelRect(x - 155, y, 310, 70, "#fff7d6");
+  pixelRect(x - 155, y, 310, 5, PALETTE.wood);
+  pixelRect(x - 155, y + 65, 310, 5, PALETTE.wood);
+  pixelRect(x - 155, y, 5, 70, PALETTE.wood);
+  pixelRect(x + 150, y, 5, 70, PALETTE.wood);
   ctx.fillStyle = "#2563eb";
-  ctx.font = "900 18px Inter, sans-serif";
+  ctx.font = "900 18px Courier New, monospace";
   ctx.textAlign = "center";
   ctx.fillText(`Этап ${number}`, x, y + 25);
   ctx.fillStyle = "#0f172a";
-  ctx.font = "800 20px Inter, sans-serif";
+  ctx.font = "800 20px Courier New, monospace";
   ctx.fillText(title, x, y + 52);
 }
 
 function drawSimplePerson(x, y, shirt, skin) {
-  ctx.fillStyle = shirt;
-  roundRect(x - 22, y + 32, 44, 50, 10, true);
-  ctx.fillStyle = skin;
-  ctx.beginPath();
-  ctx.arc(x, y + 15, 22, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#111827";
-  ctx.beginPath();
-  ctx.arc(x - 7, y + 14, 2.5, 0, Math.PI * 2);
-  ctx.arc(x + 7, y + 14, 2.5, 0, Math.PI * 2);
-  ctx.fill();
+  pixelRect(x - 22, y + 32, 44, 50, shirt);
+  pixelRect(x - 18, y, 36, 30, skin);
+  pixelRect(x - 22, y - 4, 40, 10, "#111827");
+  pixelRect(x - 8, y + 14, 3, 3, PALETTE.ink);
+  pixelRect(x + 7, y + 14, 3, 3, PALETTE.ink);
 }
 
 function drawGift(x, y, w, h) {
-  ctx.fillStyle = "#ef4444";
-  roundRect(x - w / 2, y, w, h, 10, true);
-  ctx.fillStyle = "#facc15";
-  ctx.fillRect(x - 8, y, 16, h);
-  ctx.fillRect(x - w / 2, y + 28, w, 14);
-  ctx.strokeStyle = "#facc15";
-  ctx.lineWidth = 8;
-  ctx.beginPath();
-  ctx.arc(x - 18, y - 3, 18, 0.2, Math.PI * 1.7);
-  ctx.arc(x + 18, y - 3, 18, Math.PI * 1.3, Math.PI * 0.8, true);
-  ctx.stroke();
+  pixelRect(x - w / 2, y, w, h, "#ef4444");
+  pixelRect(x - 8, y, 16, h, PALETTE.gold);
+  pixelRect(x - w / 2, y + 28, w, 14, PALETTE.gold);
+  pixelRect(x - 34, y - 18, 24, 16, PALETTE.gold);
+  pixelRect(x + 10, y - 18, 24, 16, PALETTE.gold);
 }
 
 function drawBalloons(x, y) {
@@ -816,48 +755,37 @@ function drawBalloons(x, y) {
     [88, 4, "#facc15"],
   ];
   balloons.forEach(([dx, dy, color]) => {
-    ctx.strokeStyle = "rgba(15,23,42,0.4)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x + dx, y + dy + 38);
-    ctx.quadraticCurveTo(x + dx + 12, y + dy + 90, x + dx - 8, y + dy + 136);
-    ctx.stroke();
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.ellipse(x + dx, y + dy, 25, 34, 0, 0, Math.PI * 2);
-    ctx.fill();
+    for (let i = 0; i < 7; i += 1) {
+      pixelRect(x + dx + (i % 2 ? 3 : -3), y + dy + 36 + i * 14, 2, 14, "rgba(15,23,42,0.4)");
+    }
+    pixelRect(x + dx - 20, y + dy - 28, 40, 56, color);
+    pixelRect(x + dx - 12, y + dy + 28, 24, 8, color);
+    pixelRect(x + dx - 12, y + dy - 20, 8, 10, "rgba(255,255,255,0.28)");
   });
 }
 
 function drawWheel(x, y) {
-  ctx.fillStyle = "#0f172a";
-  ctx.beginPath();
-  ctx.arc(x, y, 24, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#e2e8f0";
-  ctx.beginPath();
-  ctx.arc(x, y, 10, 0, Math.PI * 2);
-  ctx.fill();
+  pixelRect(x - 24, y - 24, 48, 48, PALETTE.ink);
+  pixelRect(x - 12, y - 12, 24, 24, "#e2e8f0");
 }
 
 function drawSun(x, y) {
-  ctx.fillStyle = "rgba(250, 204, 21, 0.92)";
-  ctx.beginPath();
-  ctx.arc(x, y, 46, 0, Math.PI * 2);
-  ctx.fill();
+  pixelRect(x - 34, y - 34, 68, 68, "rgba(250, 204, 21, 0.92)");
+  pixelRect(x - 46, y - 14, 12, 28, "rgba(250, 204, 21, 0.92)");
+  pixelRect(x + 34, y - 14, 12, 28, "rgba(250, 204, 21, 0.92)");
+  pixelRect(x - 14, y - 46, 28, 12, "rgba(250, 204, 21, 0.92)");
+  pixelRect(x - 14, y + 34, 28, 12, "rgba(250, 204, 21, 0.92)");
 }
 
 function drawCloud(x, y, scale = 1) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  ctx.fillStyle = "rgba(255,255,255,0.86)";
-  ctx.beginPath();
-  ctx.arc(0, 25, 28, Math.PI, Math.PI * 2);
-  ctx.arc(34, 12, 34, Math.PI, Math.PI * 2);
-  ctx.arc(76, 25, 28, Math.PI, Math.PI * 2);
-  ctx.fillRect(-5, 24, 86, 28);
-  ctx.fill();
+  pixelRect(-4, 24, 92, 28, "rgba(255,255,255,0.86)");
+  pixelRect(8, 8, 28, 18, "rgba(255,255,255,0.86)");
+  pixelRect(34, 0, 36, 28, "rgba(255,255,255,0.86)");
+  pixelRect(68, 14, 30, 24, "rgba(255,255,255,0.86)");
+  pixelRect(8, 44, 74, 8, "#dbeafe");
   ctx.restore();
 }
 
@@ -865,14 +793,10 @@ function drawTree(x, y, scale = 1) {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  ctx.fillStyle = "#854d0e";
-  roundRect(-9, -52, 18, 52, 5, true);
-  ctx.fillStyle = "#16a34a";
-  ctx.beginPath();
-  ctx.arc(0, -72, 36, 0, Math.PI * 2);
-  ctx.arc(-26, -54, 28, 0, Math.PI * 2);
-  ctx.arc(28, -52, 30, 0, Math.PI * 2);
-  ctx.fill();
+  pixelRect(-9, -52, 18, 52, "#854d0e");
+  pixelRect(-36, -92, 72, 32, "#16a34a");
+  pixelRect(-52, -68, 104, 30, "#15803d");
+  pixelRect(-30, -106, 60, 22, "#22c55e");
   ctx.restore();
 }
 
@@ -919,20 +843,23 @@ function random(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-function roundRect(x, y, w, h, r, fill = true) {
-  const radius = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + w - radius, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-  ctx.lineTo(x + w, y + h - radius);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-  ctx.lineTo(x + radius, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  if (fill) ctx.fill();
-  else ctx.stroke();
+function snap(value) {
+  return Math.round(value / PIXEL) * PIXEL;
+}
+
+function pixelRect(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(snap(x), snap(y), snap(w), snap(h));
+}
+
+function pixelHill(cx, baseY, width, height, color, shadow) {
+  for (let row = 0; row < height; row += PIXEL) {
+    const t = row / height;
+    const half = (width / 2) * Math.sin(t * Math.PI);
+    const y = baseY - row;
+    pixelRect(cx - half, y, half * 2, PIXEL, color);
+    if (row > height * 0.45) pixelRect(cx + half * 0.25, y, half * 0.55, PIXEL, shadow);
+  }
 }
 
 function setKey(code, value) {
