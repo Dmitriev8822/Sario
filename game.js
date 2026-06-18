@@ -28,16 +28,55 @@ const CONFIG = {
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const playerSprites = {
-  idle: new Image(),
-  run1: new Image(),
-  run2: new Image(),
-};
-playerSprites.idle.src = "assets/player/idle.png";
-playerSprites.run1.src = "assets/player/run1.png";
-playerSprites.run2.src = "assets/player/run2.png";
 const PLAYER_SPRITE_WIDTH = 64;
 const PLAYER_SPRITE_HEIGHT = 122;
+const OPAQUE_ALPHA_THRESHOLD = 8;
+
+function getOpaqueImageBounds(image) {
+  const scanCanvas = document.createElement("canvas");
+  scanCanvas.width = image.naturalWidth;
+  scanCanvas.height = image.naturalHeight;
+
+  const scanCtx = scanCanvas.getContext("2d");
+  scanCtx.drawImage(image, 0, 0);
+
+  const { data } = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
+  let minX = scanCanvas.width;
+  let minY = scanCanvas.height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < scanCanvas.height; y += 1) {
+    for (let x = 0; x < scanCanvas.width; x += 1) {
+      const alpha = data[(y * scanCanvas.width + x) * 4 + 3];
+      if (alpha <= OPAQUE_ALPHA_THRESHOLD) continue;
+
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+
+  if (maxX === -1) return { x: 0, y: 0, w: image.naturalWidth, h: image.naturalHeight };
+  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+function loadPlayerSprite(src) {
+  const image = new Image();
+  image.bounds = null;
+  image.addEventListener("load", () => {
+    image.bounds = getOpaqueImageBounds(image);
+  });
+  image.src = src;
+  return image;
+}
+
+const playerSprites = {
+  idle: loadPlayerSprite("assets/player/idle.png"),
+  run1: loadPlayerSprite("assets/player/run1.png"),
+  run2: loadPlayerSprite("assets/player/run2.png"),
+};
 
 const startScreen = document.getElementById("startScreen");
 const gameShell = document.getElementById("gameShell");
@@ -436,15 +475,18 @@ function drawPlayer() {
   const sprite = moving
     ? (Math.floor(p.walkTime * 6) % 2 === 0 ? playerSprites.run1 : playerSprites.run2)
     : playerSprites.idle;
-  const spriteWidth = PLAYER_SPRITE_WIDTH;
-  const spriteHeight = PLAYER_SPRITE_HEIGHT;
-
   ctx.save();
+  ctx.globalAlpha = 1;
   ctx.translate(x + p.w / 2, y + p.h / 2);
   ctx.scale(p.direction, 1);
   if (sprite.complete && sprite.naturalWidth > 0) {
+    const source = sprite.bounds || { x: 0, y: 0, w: sprite.naturalWidth, h: sprite.naturalHeight };
+    const scale = Math.min(PLAYER_SPRITE_WIDTH / source.w, PLAYER_SPRITE_HEIGHT / source.h);
+    const spriteWidth = source.w * scale;
+    const spriteHeight = source.h * scale;
+
     ctx.translate(-spriteWidth / 2, p.h / 2 - spriteHeight);
-    ctx.drawImage(sprite, 0, 0, spriteWidth, spriteHeight);
+    ctx.drawImage(sprite, source.x, source.y, source.w, source.h, 0, 0, spriteWidth, spriteHeight);
   }
   ctx.restore();
 
