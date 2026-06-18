@@ -28,6 +28,55 @@ const CONFIG = {
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const PLAYER_SPRITE_WIDTH = 64;
+const PLAYER_SPRITE_HEIGHT = 122;
+const OPAQUE_ALPHA_THRESHOLD = 8;
+
+function getOpaqueImageBounds(image) {
+  const scanCanvas = document.createElement("canvas");
+  scanCanvas.width = image.naturalWidth;
+  scanCanvas.height = image.naturalHeight;
+
+  const scanCtx = scanCanvas.getContext("2d");
+  scanCtx.drawImage(image, 0, 0);
+
+  const { data } = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
+  let minX = scanCanvas.width;
+  let minY = scanCanvas.height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < scanCanvas.height; y += 1) {
+    for (let x = 0; x < scanCanvas.width; x += 1) {
+      const alpha = data[(y * scanCanvas.width + x) * 4 + 3];
+      if (alpha <= OPAQUE_ALPHA_THRESHOLD) continue;
+
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+
+  if (maxX === -1) return { x: 0, y: 0, w: image.naturalWidth, h: image.naturalHeight };
+  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+function loadPlayerSprite(src) {
+  const image = new Image();
+  image.bounds = null;
+  image.addEventListener("load", () => {
+    image.bounds = getOpaqueImageBounds(image);
+  });
+  image.src = src;
+  return image;
+}
+
+const playerSprites = {
+  idle: loadPlayerSprite("assets/player/idle.png"),
+  run1: loadPlayerSprite("assets/player/run1.png"),
+  run2: loadPlayerSprite("assets/player/run2.png"),
+};
 
 const startScreen = document.getElementById("startScreen");
 const gameShell = document.getElementById("gameShell");
@@ -89,6 +138,7 @@ function createPlayer() {
   return {
     x: 80,
     y: FLOOR_Y - 52,
+    // Физический hitbox остается компактным; PNG-спрайт рисуется крупнее с визуальным смещением.
     w: 30,
     h: 52,
     vx: 0,
@@ -416,70 +466,28 @@ function drawCoins() {
   });
 }
 
+
 function drawPlayer() {
   const p = state.player;
   const x = p.x - cameraX;
   const y = p.y;
-  const cfg = CONFIG.player;
   const moving = p.grounded && Math.abs(p.vx) > 30;
-  const phase = Math.sin(p.walkTime);
-  const frontLeg = moving ? phase * 9 : 0;
-  const backLeg = moving ? -phase * 9 : 0;
-  const frontArm = moving ? -phase * 6 : 0;
-  const backArm = moving ? phase * 6 : 0;
-
+  const sprite = moving
+    ? (Math.floor(p.walkTime * 6) % 2 === 0 ? playerSprites.run1 : playerSprites.run2)
+    : playerSprites.idle;
   ctx.save();
+  ctx.globalAlpha = 1;
   ctx.translate(x + p.w / 2, y + p.h / 2);
   ctx.scale(p.direction, 1);
-  ctx.translate(-p.w / 2, -p.h / 2);
+  if (sprite.complete && sprite.naturalWidth > 0) {
+    const source = sprite.bounds || { x: 0, y: 0, w: sprite.naturalWidth, h: sprite.naturalHeight };
+    const scale = Math.min(PLAYER_SPRITE_WIDTH / source.w, PLAYER_SPRITE_HEIGHT / source.h);
+    const spriteWidth = source.w * scale;
+    const spriteHeight = source.h * scale;
 
-  // Крупный пиксельный спрайт: кепка назад, тёмное худи, синие штаны и белые кроссовки.
-  pixelRect(14, 2, 34, 8, PALETTE.ink);
-  pixelRect(10, 8, 42, 12, PALETTE.ink);
-  pixelRect(12, 8, 36, 10, cfg.cap);
-  pixelRect(46, 14, 14, 8, PALETTE.ink);
-  pixelRect(48, 16, 12, 6, cfg.cap);
-  pixelRect(14, 10, 6, 18, cfg.capLight);
-  pixelRect(36, 12, 10, 4, "#c47a1d");
-
-  pixelRect(14, 22, 36, 8, cfg.hair);
-  pixelRect(10, 28, 44, 28, PALETTE.ink);
-  pixelRect(14, 28, 36, 26, cfg.skin);
-  pixelRect(48, 36, 6, 12, cfg.skin);
-  pixelRect(25, 38, 4, 8, "#1d8fff");
-  pixelRect(42, 38, 4, 8, "#1d8fff");
-  pixelRect(24, 52, 16, 3, "#7c2d12");
-  pixelRect(11, 20, 10, 8, cfg.hair);
-  pixelRect(45, 20, 8, 10, cfg.hair);
-
-  pixelRect(11, 55, 42, 8, PALETTE.ink);
-  pixelRect(9, 62, 46, 27, PALETTE.ink);
-  pixelRect(13, 58, 38, 30, cfg.hoodie);
-  pixelRect(19, 58, 4, 27, "#e5eef7");
-  pixelRect(44, 58, 4, 27, "#e5eef7");
-  pixelRect(28, 60, 4, 21, "#dbeafe");
-  pixelRect(10, 78, 42, 10, cfg.hoodieDark);
-
-  pixelRect(4, 63 + backArm, 12, 25, PALETTE.ink);
-  pixelRect(6, 65 + backArm, 9, 20, cfg.hoodie);
-  pixelRect(4, 83 + backArm, 12, 9, cfg.skin);
-  pixelRect(50, 63 + frontArm, 12, 25, PALETTE.ink);
-  pixelRect(50, 65 + frontArm, 9, 20, cfg.hoodie);
-  pixelRect(50, 83 + frontArm, 12, 9, cfg.skin);
-
-  pixelRect(14, 86, 16, 6, PALETTE.ink);
-  pixelRect(33, 86, 16, 6, PALETTE.ink);
-  pixelRect(12 + Math.min(0, backLeg), 90, 18, 25, cfg.pants);
-  pixelRect(33 + Math.max(0, frontLeg), 90, 18, 25, cfg.pants);
-  pixelRect(14 + Math.min(0, backLeg), 93, 5, 20, "#e5eef7");
-  pixelRect(20 + Math.min(0, backLeg), 98, 5, 15, "#e5eef7");
-  pixelRect(35 + Math.max(0, frontLeg), 93, 5, 20, "#e5eef7");
-  pixelRect(41 + Math.max(0, frontLeg), 98, 5, 15, "#e5eef7");
-  pixelRect(10 + Math.min(0, backLeg), 112, 22, 9, PALETTE.ink);
-  pixelRect(12 + Math.min(0, backLeg), 110, 18, 8, "#f8fafc");
-  pixelRect(31 + Math.max(0, frontLeg), 112, 22, 9, PALETTE.ink);
-  pixelRect(33 + Math.max(0, frontLeg), 110, 18, 8, "#f8fafc");
-
+    ctx.translate(-spriteWidth / 2, p.h / 2 - spriteHeight);
+    ctx.drawImage(sprite, source.x, source.y, source.w, source.h, 0, 0, spriteWidth, spriteHeight);
+  }
   ctx.restore();
 
   // Имя над персонажем.
@@ -488,9 +496,8 @@ function drawPlayer() {
   ctx.fillStyle = "#ffffff";
   ctx.font = "700 13px Courier New, monospace";
   ctx.textAlign = "center";
-  ctx.fillText(CONFIG.player.name, x + p.w / 2, y - 15);
+  ctx.fillText(CONFIG.player.name, x + p.w / 2, y - 14);
 }
-
 function drawParticles() {
   state.particles.forEach((p) => {
     const x = p.x - cameraX;
