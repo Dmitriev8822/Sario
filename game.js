@@ -99,7 +99,7 @@ const finishStats = document.getElementById("finishStats");
 
 const VIEW = { width: 1280, height: 720 };
 const FLOOR_Y = 612;
-const PIXEL = 4;
+const PIXEL = 2;
 const PALETTE = {
   ink: "#111827",
   sky1: "#60a5fa",
@@ -435,7 +435,7 @@ function drawSky() {
   pixelRect(0, 540, VIEW.width, 180, "#fde68a");
   for (let y = 48; y < 540; y += 64) {
     for (let x = (y / 2) % 32; x < VIEW.width; x += 96) {
-      pixelRect(x, y, 4, 4, "rgba(255,255,255,0.24)");
+      pixelRect(x, y, 2, 2, "rgba(255,255,255,0.24)");
     }
   }
 
@@ -544,7 +544,7 @@ function drawPlayer() {
   const x = p.x - cameraX;
   const y = p.y;
   const cfg = CONFIG.player;
-  const step = p.grounded && Math.abs(p.vx) > 30 ? Math.sign(Math.sin(p.walkTime)) * 4 : 0;
+  const step = p.grounded && Math.abs(p.vx) > 30 ? Math.sign(Math.sin(p.walkTime)) * 2 : 0;
 
   ctx.save();
   ctx.translate(x + p.w / 2, y + p.h / 2);
@@ -560,7 +560,7 @@ function drawPlayer() {
   pixelRect(12, 10, 28, 24, cfg.skin);
   pixelRect(10, 6, 30, 10, cfg.hair);
   pixelRect(8, 14, 10, 10, cfg.hair);
-  pixelRect(30, 20, 4, 4, PALETTE.ink);
+  pixelRect(30, 20, 3, 3, PALETTE.ink);
   pixelRect(29, 29, 9, 4, "#7c2d12");
 
   ctx.restore();
@@ -736,8 +736,8 @@ function drawSimplePerson(x, y, shirt, skin) {
   pixelRect(x - 22, y + 32, 44, 50, shirt);
   pixelRect(x - 18, y, 36, 30, skin);
   pixelRect(x - 22, y - 4, 40, 10, "#111827");
-  pixelRect(x - 8, y + 14, 4, 4, PALETTE.ink);
-  pixelRect(x + 7, y + 14, 4, 4, PALETTE.ink);
+  pixelRect(x - 8, y + 14, 3, 3, PALETTE.ink);
+  pixelRect(x + 7, y + 14, 3, 3, PALETTE.ink);
 }
 
 function drawGift(x, y, w, h) {
@@ -756,7 +756,7 @@ function drawBalloons(x, y) {
   ];
   balloons.forEach(([dx, dy, color]) => {
     for (let i = 0; i < 7; i += 1) {
-      pixelRect(x + dx + (i % 2 ? 4 : -4), y + dy + 36 + i * 14, 4, 14, "rgba(15,23,42,0.4)");
+      pixelRect(x + dx + (i % 2 ? 3 : -3), y + dy + 36 + i * 14, 2, 14, "rgba(15,23,42,0.4)");
     }
     pixelRect(x + dx - 20, y + dy - 28, 40, 56, color);
     pixelRect(x + dx - 12, y + dy + 28, 24, 8, color);
