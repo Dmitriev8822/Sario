@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sario — пиксельная игра-подарок</title>
+    <link rel="stylesheet" href="src/styles/main.css" />
+  </head>
+  <body>
+    <main class="site-shell">
+      <section id="home" class="hero screen is-active" aria-labelledby="hero-title">
+        <div class="hero__content pixel-card">
+          <p class="eyebrow">Birthday mini adventure</p>
+          <h1 id="hero-title">Sario: подарок в пикселях</h1>
+          <p class="hero__text">
+            Небольшое аркадное приключение в духе классических платформеров:
+            собери звёзды, доберись до подарка и открой поздравление.
+          </p>
+          <div class="hero__actions" aria-label="Главная навигация">
+            <button class="button button--primary" data-start-game>Начать игру</button>
+            <button class="button" data-open-section="about">Об игре</button>
+            <button class="button" data-open-section="controls">Управление</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="game" class="game-screen screen" aria-labelledby="game-title">
+        <div class="game-layout">
+          <aside class="pixel-card side-panel">
+            <h2 id="game-title">Приключение</h2>
+            <p>Помоги герою собрать 5 звёзд и дойти до подарка.</p>
+            <dl class="stats">
+              <div><dt>Звёзды</dt><dd><span data-stars>0</span>/5</dd></div>
+              <div><dt>Время</dt><dd><span data-time>00:00</span></dd></div>
+            </dl>
+            <div class="side-panel__actions">
+              <button class="button button--primary" data-restart-game>Заново</button>
+              <button class="button" data-open-section="home">На главную</button>
+            </div>
+          </aside>
+
+          <div class="game-frame pixel-card">
+            <canvas id="gameCanvas" width="960" height="540" aria-label="Игровое поле"></canvas>
+            <div class="message-box" data-message hidden></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="about" class="info screen" aria-labelledby="about-title">
+        <div class="pixel-card info__card">
+          <h2 id="about-title">Персональная мини-игра</h2>
+          <p>
+            Проект собран на чистых HTML, CSS и JavaScript без сборщиков и внешних
+            зависимостей. Его можно открыть как обычную страницу или встроить в
+            существующий сайт.
+          </p>
+          <p>
+            Фон вынесен в отдельную SVG-картинку и подключается через CSS-переменную,
+            поэтому оформление легко заменить под настроение, локацию или именинника.
+          </p>
+          <button class="button" data-open-section="home">Назад</button>
+        </div>
+      </section>
+
+      <section id="controls" class="info screen" aria-labelledby="controls-title">
+        <div class="pixel-card info__card">
+          <h2 id="controls-title">Управление</h2>
+          <ul class="controls-list">
+            <li><kbd>←</kbd><kbd>→</kbd> или <kbd>A</kbd><kbd>D</kbd> — движение</li>
+            <li><kbd>Space</kbd>, <kbd>↑</kbd> или <kbd>W</kbd> — прыжок</li>
+            <li>На телефоне используй экранные кнопки внизу игры.</li>
+          </ul>
+          <button class="button" data-open-section="home">Назад</button>
+        </div>
+      </section>
+    </main>
+
+    <div class="touch-controls" aria-label="Сенсорное управление">
+      <button data-touch="left" aria-label="Влево">◀</button>
+      <button data-touch="jump" aria-label="Прыжок">◆</button>
+      <button data-touch="right" aria-label="Вправо">▶</button>
+    </div>
+
+    <script type="module" src="src/scripts/main.js"></script>
+  </body>
+</html>
