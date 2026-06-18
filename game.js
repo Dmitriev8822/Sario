@@ -28,6 +28,16 @@ const CONFIG = {
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const playerSprites = {
+  idle: new Image(),
+  run1: new Image(),
+  run2: new Image(),
+};
+playerSprites.idle.src = "assets/player/idle.png";
+playerSprites.run1.src = "assets/player/run1.png";
+playerSprites.run2.src = "assets/player/run2.png";
+const PLAYER_SPRITE_WIDTH = 64;
+const PLAYER_SPRITE_HEIGHT = 122;
 
 const startScreen = document.getElementById("startScreen");
 const gameShell = document.getElementById("gameShell");
@@ -89,6 +99,7 @@ function createPlayer() {
   return {
     x: 80,
     y: FLOOR_Y - 52,
+    // Физический hitbox остается компактным; PNG-спрайт рисуется крупнее с визуальным смещением.
     w: 30,
     h: 52,
     vx: 0,
@@ -420,66 +431,18 @@ function drawPlayer() {
   const p = state.player;
   const x = p.x - cameraX;
   const y = p.y;
-  const cfg = CONFIG.player;
   const moving = p.grounded && Math.abs(p.vx) > 30;
-  const phase = Math.sin(p.walkTime);
-  const frontLeg = moving ? phase * 9 : 0;
-  const backLeg = moving ? -phase * 9 : 0;
-  const frontArm = moving ? -phase * 6 : 0;
-  const backArm = moving ? phase * 6 : 0;
+  const sprite = moving
+    ? (Math.floor(p.walkTime * 6) % 2 === 0 ? playerSprites.run1 : playerSprites.run2)
+    : playerSprites.idle;
+  const spriteWidth = PLAYER_SPRITE_WIDTH;
+  const spriteHeight = PLAYER_SPRITE_HEIGHT;
 
   ctx.save();
   ctx.translate(x + p.w / 2, y + p.h / 2);
   ctx.scale(p.direction, 1);
-  ctx.translate(-p.w / 2, -p.h / 2);
-
-  // Крупный пиксельный спрайт: кепка назад, тёмное худи, синие штаны и белые кроссовки.
-  pixelRect(14, 2, 34, 8, PALETTE.ink);
-  pixelRect(10, 8, 42, 12, PALETTE.ink);
-  pixelRect(12, 8, 36, 10, cfg.cap);
-  pixelRect(46, 14, 14, 8, PALETTE.ink);
-  pixelRect(48, 16, 12, 6, cfg.cap);
-  pixelRect(14, 10, 6, 18, cfg.capLight);
-  pixelRect(36, 12, 10, 4, "#c47a1d");
-
-  pixelRect(14, 22, 36, 8, cfg.hair);
-  pixelRect(10, 28, 44, 28, PALETTE.ink);
-  pixelRect(14, 28, 36, 26, cfg.skin);
-  pixelRect(48, 36, 6, 12, cfg.skin);
-  pixelRect(25, 38, 4, 8, "#1d8fff");
-  pixelRect(42, 38, 4, 8, "#1d8fff");
-  pixelRect(24, 52, 16, 3, "#7c2d12");
-  pixelRect(11, 20, 10, 8, cfg.hair);
-  pixelRect(45, 20, 8, 10, cfg.hair);
-
-  pixelRect(11, 55, 42, 8, PALETTE.ink);
-  pixelRect(9, 62, 46, 27, PALETTE.ink);
-  pixelRect(13, 58, 38, 30, cfg.hoodie);
-  pixelRect(19, 58, 4, 27, "#e5eef7");
-  pixelRect(44, 58, 4, 27, "#e5eef7");
-  pixelRect(28, 60, 4, 21, "#dbeafe");
-  pixelRect(10, 78, 42, 10, cfg.hoodieDark);
-
-  pixelRect(4, 63 + backArm, 12, 25, PALETTE.ink);
-  pixelRect(6, 65 + backArm, 9, 20, cfg.hoodie);
-  pixelRect(4, 83 + backArm, 12, 9, cfg.skin);
-  pixelRect(50, 63 + frontArm, 12, 25, PALETTE.ink);
-  pixelRect(50, 65 + frontArm, 9, 20, cfg.hoodie);
-  pixelRect(50, 83 + frontArm, 12, 9, cfg.skin);
-
-  pixelRect(14, 86, 16, 6, PALETTE.ink);
-  pixelRect(33, 86, 16, 6, PALETTE.ink);
-  pixelRect(12 + Math.min(0, backLeg), 90, 18, 25, cfg.pants);
-  pixelRect(33 + Math.max(0, frontLeg), 90, 18, 25, cfg.pants);
-  pixelRect(14 + Math.min(0, backLeg), 93, 5, 20, "#e5eef7");
-  pixelRect(20 + Math.min(0, backLeg), 98, 5, 15, "#e5eef7");
-  pixelRect(35 + Math.max(0, frontLeg), 93, 5, 20, "#e5eef7");
-  pixelRect(41 + Math.max(0, frontLeg), 98, 5, 15, "#e5eef7");
-  pixelRect(10 + Math.min(0, backLeg), 112, 22, 9, PALETTE.ink);
-  pixelRect(12 + Math.min(0, backLeg), 110, 18, 8, "#f8fafc");
-  pixelRect(31 + Math.max(0, frontLeg), 112, 22, 9, PALETTE.ink);
-  pixelRect(33 + Math.max(0, frontLeg), 110, 18, 8, "#f8fafc");
-
+  ctx.translate(-spriteWidth / 2, p.h / 2 - spriteHeight);
+  ctx.drawImage(sprite, 0, 0, spriteWidth, spriteHeight);
   ctx.restore();
 
   // Имя над персонажем.
@@ -488,9 +451,8 @@ function drawPlayer() {
   ctx.fillStyle = "#ffffff";
   ctx.font = "700 13px Courier New, monospace";
   ctx.textAlign = "center";
-  ctx.fillText(CONFIG.player.name, x + p.w / 2, y - 15);
+  ctx.fillText(CONFIG.player.name, x + p.w / 2, y - 14);
 }
-
 function drawParticles() {
   state.particles.forEach((p) => {
     const x = p.x - cameraX;
