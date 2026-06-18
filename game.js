@@ -14,10 +14,14 @@ const CONFIG = {
   jumpSpeed: 820,
   player: {
     name: "Друг",
-    shirt: "#2563eb",
-    pants: "#1e293b",
-    skin: "#f2c49b",
-    hair: "#2b2118",
+    hoodie: "#0f253d",
+    hoodieDark: "#071424",
+    pants: "#1458c8",
+    pantsDark: "#0b2f7f",
+    skin: "#f2b27f",
+    hair: "#b46b18",
+    cap: "#091a31",
+    capLight: "#f8fafc",
   },
   events: [],
 };
@@ -112,7 +116,7 @@ function resetGame() {
   state.player = createPlayer();
   state.platforms = createPlatforms();
   state.coins = createCoins();
-  state.checkpoints = [];
+  state.checkpoints = CONFIG.events.map((event) => ({ x: event.x - 80, y: FLOOR_Y - 121 }));
   state.particles = [];
   state.finished = false;
   state.startedAt = performance.now();
@@ -417,26 +421,74 @@ function drawPlayer() {
   const x = p.x - cameraX;
   const y = p.y;
   const cfg = CONFIG.player;
-  const step = p.grounded && Math.abs(p.vx) > 30 ? Math.sign(Math.sin(p.walkTime)) : 0;
+  const moving = p.grounded && Math.abs(p.vx) > 30;
+  const phase = Math.sin(p.walkTime);
+  const frontLeg = moving ? phase * 9 : 0;
+  const backLeg = moving ? -phase * 9 : 0;
+  const frontArm = moving ? -phase * 6 : 0;
+  const backArm = moving ? phase * 6 : 0;
 
   ctx.save();
   ctx.translate(x + p.w / 2, y + p.h / 2);
   ctx.scale(p.direction, 1);
   ctx.translate(-p.w / 2, -p.h / 2);
 
-  pixelRect(5, 34, 7, 17 + step, cfg.pants);
-  pixelRect(18, 34, 7, 17 - step, cfg.pants);
-  pixelRect(3, 49 + Math.max(0, step), 11, 4, PALETTE.ink);
-  pixelRect(16, 49 - Math.min(0, step), 11, 4, PALETTE.ink);
-  pixelRect(4, 20, 22, 18, cfg.shirt);
-  pixelRect(8, 23, 12, 3, "rgba(255,255,255,0.32)");
-  pixelRect(7, 6, 17, 15, cfg.skin);
-  pixelRect(6, 3, 18, 6, cfg.hair);
-  pixelRect(5, 8, 6, 6, cfg.hair);
-  pixelRect(18, 12, 2, 2, PALETTE.ink);
-  pixelRect(17, 18, 6, 2, "#7c2d12");
+  // Крупный пиксельный спрайт: кепка назад, тёмное худи, синие штаны и белые кроссовки.
+  pixelRect(14, 2, 34, 8, PALETTE.ink);
+  pixelRect(10, 8, 42, 12, PALETTE.ink);
+  pixelRect(12, 8, 36, 10, cfg.cap);
+  pixelRect(46, 14, 14, 8, PALETTE.ink);
+  pixelRect(48, 16, 12, 6, cfg.cap);
+  pixelRect(14, 10, 6, 18, cfg.capLight);
+  pixelRect(36, 12, 10, 4, "#c47a1d");
+
+  pixelRect(14, 22, 36, 8, cfg.hair);
+  pixelRect(10, 28, 44, 28, PALETTE.ink);
+  pixelRect(14, 28, 36, 26, cfg.skin);
+  pixelRect(48, 36, 6, 12, cfg.skin);
+  pixelRect(25, 38, 4, 8, "#1d8fff");
+  pixelRect(42, 38, 4, 8, "#1d8fff");
+  pixelRect(24, 52, 16, 3, "#7c2d12");
+  pixelRect(11, 20, 10, 8, cfg.hair);
+  pixelRect(45, 20, 8, 10, cfg.hair);
+
+  pixelRect(11, 55, 42, 8, PALETTE.ink);
+  pixelRect(9, 62, 46, 27, PALETTE.ink);
+  pixelRect(13, 58, 38, 30, cfg.hoodie);
+  pixelRect(19, 58, 4, 27, "#e5eef7");
+  pixelRect(44, 58, 4, 27, "#e5eef7");
+  pixelRect(28, 60, 4, 21, "#dbeafe");
+  pixelRect(10, 78, 42, 10, cfg.hoodieDark);
+
+  pixelRect(4, 63 + backArm, 12, 25, PALETTE.ink);
+  pixelRect(6, 65 + backArm, 9, 20, cfg.hoodie);
+  pixelRect(4, 83 + backArm, 12, 9, cfg.skin);
+  pixelRect(50, 63 + frontArm, 12, 25, PALETTE.ink);
+  pixelRect(50, 65 + frontArm, 9, 20, cfg.hoodie);
+  pixelRect(50, 83 + frontArm, 12, 9, cfg.skin);
+
+  pixelRect(14, 86, 16, 6, PALETTE.ink);
+  pixelRect(33, 86, 16, 6, PALETTE.ink);
+  pixelRect(12 + Math.min(0, backLeg), 90, 18, 25, cfg.pants);
+  pixelRect(33 + Math.max(0, frontLeg), 90, 18, 25, cfg.pants);
+  pixelRect(14 + Math.min(0, backLeg), 93, 5, 20, "#e5eef7");
+  pixelRect(20 + Math.min(0, backLeg), 98, 5, 15, "#e5eef7");
+  pixelRect(35 + Math.max(0, frontLeg), 93, 5, 20, "#e5eef7");
+  pixelRect(41 + Math.max(0, frontLeg), 98, 5, 15, "#e5eef7");
+  pixelRect(10 + Math.min(0, backLeg), 112, 22, 9, PALETTE.ink);
+  pixelRect(12 + Math.min(0, backLeg), 110, 18, 8, "#f8fafc");
+  pixelRect(31 + Math.max(0, frontLeg), 112, 22, 9, PALETTE.ink);
+  pixelRect(33 + Math.max(0, frontLeg), 110, 18, 8, "#f8fafc");
 
   ctx.restore();
+
+  // Имя над персонажем.
+  ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
+  pixelRect(x - 3, y - 30, p.w + 6, 22, "rgba(15, 23, 42, 0.78)");
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "700 13px Courier New, monospace";
+  ctx.textAlign = "center";
+  ctx.fillText(CONFIG.player.name, x + p.w / 2, y - 15);
 }
 
 function drawParticles() {
