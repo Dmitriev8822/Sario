@@ -8,7 +8,7 @@ const CONFIG = {
   finalTitle: "С днём рождения!",
   finalText:
     "Ты прошёл этот путь. Дальше — ещё больше хороших событий, сильных решений и людей рядом.",
-  worldWidth: 9800,
+  worldWidth: 1280,
   gravity: 2100,
   moveSpeed: 390,
   jumpSpeed: 820,
@@ -19,62 +19,7 @@ const CONFIG = {
     skin: "#f2c49b",
     hair: "#2b2118",
   },
-  events: [
-    {
-      x: 520,
-      title: "Старт пути",
-      text: "Всё начинается с первого шага. Дальше — только вперёд.",
-      kind: "start",
-    },
-    {
-      x: 1400,
-      title: "Первый универ",
-      text: "Новая глава, новые люди и первые серьёзные решения.",
-      kind: "university",
-    },
-    {
-      x: 2400,
-      title: "Второй универ",
-      text: "Маршрут меняется, но движение продолжается.",
-      kind: "university2",
-    },
-    {
-      x: 3400,
-      title: "Третий универ",
-      text: "Опыт копится, история становится интереснее.",
-      kind: "university3",
-    },
-    {
-      x: 4550,
-      title: "Работа в Сбере",
-      text: "Появляется работа, ответственность и взрослые задачи.",
-      kind: "work",
-    },
-    {
-      x: 5650,
-      title: "Встреча с другом",
-      text: "Некоторые встречи становятся частью маршрута надолго.",
-      kind: "friend",
-    },
-    {
-      x: 6750,
-      title: "Покатушки",
-      text: "Дороги, разговоры и хорошие воспоминания в движении.",
-      kind: "car",
-    },
-    {
-      x: 7850,
-      title: "Самолёт",
-      text: "Иногда нужно взлететь, чтобы увидеть путь шире.",
-      kind: "plane",
-    },
-    {
-      x: 8850,
-      title: "Переезд",
-      text: "Новая точка на карте и ещё одна важная глава.",
-      kind: "home",
-    },
-  ],
+  events: [],
 };
 
 const canvas = document.getElementById("gameCanvas");
@@ -97,8 +42,8 @@ const finishTitle = document.getElementById("finishTitle");
 const finishText = document.getElementById("finishText");
 const finishStats = document.getElementById("finishStats");
 
-const VIEW = { width: 1280, height: 720 };
-const FLOOR_Y = 612;
+const VIEW = { width: 1280, height: 340 };
+const FLOOR_Y = 324;
 const PIXEL = 2;
 const PALETTE = {
   ink: "#111827",
@@ -139,74 +84,27 @@ const state = {
 function createPlayer() {
   return {
     x: 80,
-    y: FLOOR_Y - 96,
-    w: 48,
-    h: 86,
+    y: FLOOR_Y - 52,
+    w: 30,
+    h: 52,
     vx: 0,
     vy: 0,
     grounded: false,
     direction: 1,
     checkpointX: 80,
-    checkpointY: FLOOR_Y - 96,
+    checkpointY: FLOOR_Y - 52,
     coins: 0,
     walkTime: 0,
   };
 }
 
 function createPlatforms() {
-  const p = [];
-
-  // Основная земля с небольшими разрывами.
-  p.push({ x: -200, y: FLOOR_Y, w: 1350, h: 90, type: "ground" });
-  p.push({ x: 1250, y: FLOOR_Y, w: 880, h: 90, type: "ground" });
-  p.push({ x: 2250, y: FLOOR_Y, w: 950, h: 90, type: "ground" });
-  p.push({ x: 3300, y: FLOOR_Y, w: 940, h: 90, type: "ground" });
-  p.push({ x: 4350, y: FLOOR_Y, w: 980, h: 90, type: "ground" });
-  p.push({ x: 5420, y: FLOOR_Y, w: 940, h: 90, type: "ground" });
-  p.push({ x: 6500, y: FLOOR_Y, w: 920, h: 90, type: "ground" });
-  p.push({ x: 7540, y: FLOOR_Y, w: 920, h: 90, type: "ground" });
-  p.push({ x: 8580, y: FLOOR_Y, w: 1500, h: 90, type: "ground" });
-
-  // Платформы, по которым нужно немного попрыгать.
-  const floating = [
-    [720, 500, 170],
-    [1020, 425, 150],
-    [1690, 485, 210],
-    [2050, 410, 170],
-    [2680, 490, 180],
-    [3020, 425, 160],
-    [3770, 485, 210],
-    [4120, 415, 170],
-    [4890, 492, 190],
-    [5230, 430, 160],
-    [6000, 492, 220],
-    [6340, 422, 180],
-    [7050, 500, 200],
-    [7425, 430, 160],
-    [8140, 490, 190],
-    [8460, 420, 180],
-    [9180, 492, 220],
-  ];
-
-  floating.forEach(([x, y, w]) => p.push({ x, y, w, h: 28, type: "platform" }));
-  return p;
+  return [{ x: 0, y: FLOOR_Y, w: CONFIG.worldWidth, h: 16, type: "ground" }];
 }
 
 function createCoins() {
-  const coins = [];
-  CONFIG.events.forEach((event, index) => {
-    for (let i = 0; i < 4; i += 1) {
-      coins.push({
-        x: event.x + 120 + i * 75,
-        y: 360 + (i % 2) * 45,
-        r: 15,
-        collected: false,
-        label: index + 1,
-      });
-    }
-  });
-  totalCoins = coins.length;
-  return coins;
+  totalCoins = 0;
+  return [];
 }
 
 function resetGame() {
@@ -214,7 +112,7 @@ function resetGame() {
   state.player = createPlayer();
   state.platforms = createPlatforms();
   state.coins = createCoins();
-  state.checkpoints = CONFIG.events.map((event) => ({ x: event.x - 80, y: FLOOR_Y - 96 }));
+  state.checkpoints = [];
   state.particles = [];
   state.finished = false;
   state.startedAt = performance.now();
@@ -418,32 +316,13 @@ function hideEventCard() {
 function draw() {
   ctx.clearRect(0, 0, VIEW.width, VIEW.height);
   drawSky();
-  drawParallax();
-  drawEventScenes();
-  drawFinishGate();
   drawPlatforms();
-  drawCoins();
   drawParticles();
   drawPlayer();
-  drawForeground();
 }
 
 function drawSky() {
-  pixelRect(0, 0, VIEW.width, 150, PALETTE.sky1);
-  pixelRect(0, 150, VIEW.width, 190, PALETTE.sky2);
-  pixelRect(0, 340, VIEW.width, 200, PALETTE.sky3);
-  pixelRect(0, 540, VIEW.width, 180, "#fde68a");
-  for (let y = 48; y < 540; y += 64) {
-    for (let x = (y / 2) % 32; x < VIEW.width; x += 96) {
-      pixelRect(x, y, 2, 2, "rgba(255,255,255,0.24)");
-    }
-  }
-
-  drawSun(1040 - cameraX * 0.03, 110);
-  drawCloud(190 - cameraX * 0.12, 110, 1.1);
-  drawCloud(620 - cameraX * 0.09, 145, 0.8);
-  drawCloud(1030 - cameraX * 0.14, 95, 0.9);
-  drawCloud(1540 - cameraX * 0.11, 130, 1.0);
+  pixelRect(0, 0, VIEW.width, VIEW.height, PALETTE.sky3);
 }
 
 function drawParallax() {
@@ -510,13 +389,7 @@ function drawPlatforms() {
 
     if (p.type === "ground") {
       pixelRect(x, p.y, p.w, p.h, PALETTE.dirt);
-      pixelRect(x, p.y - 20, p.w, 24, PALETTE.grass);
-      pixelRect(x, p.y + 8, p.w, 10, PALETTE.dirtDark);
-      for (let i = 0; i < p.w; i += 32) {
-        pixelRect(x + i + 4, p.y - 16, 12, 8, "#86efac");
-        pixelRect(x + i + 10, p.y + 30, 14, 6, "#a16207");
-        pixelRect(x + i + 2, p.y + 58, 8, 6, PALETTE.dirtDark);
-      }
+      pixelRect(x, p.y, p.w, 4, PALETTE.grass);
     } else {
       pixelRect(x, p.y, p.w, p.h, PALETTE.wood);
       pixelRect(x, p.y - 8, p.w, 12, "#f59e0b");
@@ -544,34 +417,26 @@ function drawPlayer() {
   const x = p.x - cameraX;
   const y = p.y;
   const cfg = CONFIG.player;
-  const step = p.grounded && Math.abs(p.vx) > 30 ? Math.sign(Math.sin(p.walkTime)) * 2 : 0;
+  const step = p.grounded && Math.abs(p.vx) > 30 ? Math.sign(Math.sin(p.walkTime)) : 0;
 
   ctx.save();
   ctx.translate(x + p.w / 2, y + p.h / 2);
   ctx.scale(p.direction, 1);
   ctx.translate(-p.w / 2, -p.h / 2);
 
-  pixelRect(8, 56, 12, 28 + step, cfg.pants);
-  pixelRect(28, 56, 12, 28 - step, cfg.pants);
-  pixelRect(4, 82 + Math.max(0, step), 18, 8, PALETTE.ink);
-  pixelRect(26, 82 - Math.min(0, step), 18, 8, PALETTE.ink);
-  pixelRect(7, 32, 36, 30, cfg.shirt);
-  pixelRect(13, 38, 20, 5, "rgba(255,255,255,0.32)");
-  pixelRect(12, 10, 28, 24, cfg.skin);
-  pixelRect(10, 6, 30, 10, cfg.hair);
-  pixelRect(8, 14, 10, 10, cfg.hair);
-  pixelRect(30, 20, 3, 3, PALETTE.ink);
-  pixelRect(29, 29, 9, 4, "#7c2d12");
+  pixelRect(5, 34, 7, 17 + step, cfg.pants);
+  pixelRect(18, 34, 7, 17 - step, cfg.pants);
+  pixelRect(3, 49 + Math.max(0, step), 11, 4, PALETTE.ink);
+  pixelRect(16, 49 - Math.min(0, step), 11, 4, PALETTE.ink);
+  pixelRect(4, 20, 22, 18, cfg.shirt);
+  pixelRect(8, 23, 12, 3, "rgba(255,255,255,0.32)");
+  pixelRect(7, 6, 17, 15, cfg.skin);
+  pixelRect(6, 3, 18, 6, cfg.hair);
+  pixelRect(5, 8, 6, 6, cfg.hair);
+  pixelRect(18, 12, 2, 2, PALETTE.ink);
+  pixelRect(17, 18, 6, 2, "#7c2d12");
 
   ctx.restore();
-
-  // Имя над персонажем.
-  ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
-  pixelRect(x - 8, y - 30, p.w + 16, 22, "rgba(15, 23, 42, 0.78)");
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "700 13px Courier New, monospace";
-  ctx.textAlign = "center";
-  ctx.fillText(CONFIG.player.name, x + p.w / 2, y - 15);
 }
 
 function drawParticles() {
