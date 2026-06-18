@@ -28,6 +28,16 @@ const CONFIG = {
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const playerSprites = {
+  idle: new Image(),
+  run1: new Image(),
+  run2: new Image(),
+};
+playerSprites.idle.src = "assets/player/idle.png";
+playerSprites.run1.src = "assets/player/run1.png";
+playerSprites.run2.src = "assets/player/run2.png";
+const PLAYER_SPRITE_WIDTH = 64;
+const PLAYER_SPRITE_HEIGHT = 122;
 
 const startScreen = document.getElementById("startScreen");
 const gameShell = document.getElementById("gameShell");
@@ -89,6 +99,7 @@ function createPlayer() {
   return {
     x: 80,
     y: FLOOR_Y - 52,
+    // Физический hitbox остается компактным; PNG-спрайт рисуется крупнее с визуальным смещением.
     w: 30,
     h: 52,
     vx: 0,
@@ -416,24 +427,18 @@ function drawCoins() {
   });
 }
 
-function drawPlayer() {
-  const p = state.player;
-  const x = p.x - cameraX;
-  const y = p.y;
+
+function drawFallbackPlayerSprite(moving, walkTime) {
   const cfg = CONFIG.player;
-  const moving = p.grounded && Math.abs(p.vx) > 30;
-  const phase = Math.sin(p.walkTime);
+  const phase = Math.sin(walkTime);
   const frontLeg = moving ? phase * 9 : 0;
   const backLeg = moving ? -phase * 9 : 0;
   const frontArm = moving ? -phase * 6 : 0;
   const backArm = moving ? phase * 6 : 0;
 
-  ctx.save();
-  ctx.translate(x + p.w / 2, y + p.h / 2);
-  ctx.scale(p.direction, 1);
-  ctx.translate(-p.w / 2, -p.h / 2);
+  ctx.translate(-state.player.w / 2, -state.player.h / 2);
 
-  // Крупный пиксельный спрайт: кепка назад, тёмное худи, синие штаны и белые кроссовки.
+  // Fallback на процедурный спрайт, чтобы персонаж не пропадал до загрузки PNG.
   pixelRect(14, 2, 34, 8, PALETTE.ink);
   pixelRect(10, 8, 42, 12, PALETTE.ink);
   pixelRect(12, 8, 36, 10, cfg.cap);
@@ -479,7 +484,28 @@ function drawPlayer() {
   pixelRect(12 + Math.min(0, backLeg), 110, 18, 8, "#f8fafc");
   pixelRect(31 + Math.max(0, frontLeg), 112, 22, 9, PALETTE.ink);
   pixelRect(33 + Math.max(0, frontLeg), 110, 18, 8, "#f8fafc");
+}
 
+function drawPlayer() {
+  const p = state.player;
+  const x = p.x - cameraX;
+  const y = p.y;
+  const moving = p.grounded && Math.abs(p.vx) > 30;
+  const sprite = moving
+    ? (Math.floor(p.walkTime * 6) % 2 === 0 ? playerSprites.run1 : playerSprites.run2)
+    : playerSprites.idle;
+  const spriteWidth = PLAYER_SPRITE_WIDTH;
+  const spriteHeight = PLAYER_SPRITE_HEIGHT;
+
+  ctx.save();
+  ctx.translate(x + p.w / 2, y + p.h / 2);
+  ctx.scale(p.direction, 1);
+  if (sprite.complete && sprite.naturalWidth > 0) {
+    ctx.translate(-spriteWidth / 2, p.h / 2 - spriteHeight);
+    ctx.drawImage(sprite, 0, 0, spriteWidth, spriteHeight);
+  } else {
+    drawFallbackPlayerSprite(moving, p.walkTime);
+  }
   ctx.restore();
 
   // Имя над персонажем.
@@ -488,9 +514,8 @@ function drawPlayer() {
   ctx.fillStyle = "#ffffff";
   ctx.font = "700 13px Courier New, monospace";
   ctx.textAlign = "center";
-  ctx.fillText(CONFIG.player.name, x + p.w / 2, y - 15);
+  ctx.fillText(CONFIG.player.name, x + p.w / 2, y - 14);
 }
-
 function drawParticles() {
   state.particles.forEach((p) => {
     const x = p.x - cameraX;
