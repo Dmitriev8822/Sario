@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Путь именинника — мини-игра</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="hero" id="startScreen">
+      <div class="hero__card">
+        <p class="hero__eyebrow">Интерактивная открытка</p>
+        <h1>Путь именинника</h1>
+        <p class="hero__text">
+          Пройди короткий уровень, собери воспоминания и доберись до финального поздравления.
+        </p>
+        <div class="hero__actions">
+          <button class="button button--primary" id="startButton">Начать игру</button>
+          <button class="button button--ghost" id="howToButton">Управление</button>
+        </div>
+        <div class="controls-hint" id="howToBox" hidden>
+          <strong>ПК:</strong> A/D или стрелки — движение, Space/↑/W — прыжок.<br />
+          <strong>Телефон:</strong> кнопки управления внизу экрана.
+        </div>
+      </div>
+    </section>
+
+    <section class="game-shell" id="gameShell" hidden>
+      <div class="topbar">
+        <div>
+          <span class="topbar__label">Воспоминания</span>
+          <strong id="scoreLabel">0 / 0</strong>
+        </div>
+        <div>
+          <span class="topbar__label">Этап</span>
+          <strong id="eventLabel">Старт</strong>
+        </div>
+        <button class="topbar__button" id="restartButton">Заново</button>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="1280" height="720" aria-label="2D платформер"></canvas>
+        <div class="event-card" id="eventCard" hidden>
+          <p class="event-card__title" id="eventTitle"></p>
+          <p class="event-card__text" id="eventText"></p>
+        </div>
+      </div>
+
+      <div class="mobile-controls" aria-label="Мобильное управление">
+        <button class="mobile-button" data-control="left">←</button>
+        <button class="mobile-button" data-control="jump">↑</button>
+        <button class="mobile-button" data-control="right">→</button>
+      </div>
+    </section>
+
+    <section class="finish" id="finishScreen" hidden>
+      <div class="finish__card">
+        <p class="hero__eyebrow">Финиш</p>
+        <h2 id="finishTitle">С днём рождения!</h2>
+        <p id="finishText">
+          Ты прошёл этот путь. Дальше — ещё больше хороших событий, сильных решений и людей рядом.
+        </p>
+        <p class="finish__stats" id="finishStats"></p>
+        <button class="button button--primary" id="playAgainButton">Пройти ещё раз</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
