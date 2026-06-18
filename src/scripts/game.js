@@ -1,25 +1,41 @@
 const GRAVITY = 0.62;
 const MOVE_SPEED = 4.3;
 const JUMP_POWER = 13;
-const REQUIRED_STARS = 5;
+const LEVEL_SCALE = 20;
+const BASE_LEVEL_WIDTH = 1800;
+const REQUIRED_STARS = 100;
+const LEVEL_WIDTH = BASE_LEVEL_WIDTH * LEVEL_SCALE;
+const LEVEL_HEIGHT = 540;
 
-const level = {
-  width: 1800,
-  height: 540,
-  platforms: [
-    { x: 0, y: 492, w: 1800, h: 48 },
-    { x: 240, y: 390, w: 180, h: 28 },
-    { x: 520, y: 330, w: 150, h: 28 },
-    { x: 820, y: 405, w: 210, h: 28 },
-    { x: 1130, y: 325, w: 180, h: 28 },
-    { x: 1430, y: 390, w: 170, h: 28 }
-  ],
-  stars: [
-    { x: 305, y: 330 }, { x: 570, y: 270 }, { x: 910, y: 345 },
-    { x: 1200, y: 265 }, { x: 1490, y: 330 }
-  ],
-  gift: { x: 1660, y: 420, w: 54, h: 72 }
-};
+function buildLevel() {
+  const platforms = [{ x: 0, y: 492, w: LEVEL_WIDTH, h: 48 }];
+  const stars = [];
+  const pattern = [390, 330, 405, 325, 372, 285, 420, 350, 302, 392];
+  const platformCount = REQUIRED_STARS;
+  const spacing = (LEVEL_WIDTH - 520) / platformCount;
+
+  for (let i = 0; i < platformCount; i += 1) {
+    const x = Math.round(230 + i * spacing + (i % 4) * 18);
+    const y = pattern[i % pattern.length];
+    const w = 145 + (i % 5) * 18;
+    platforms.push({ x, y, w, h: 28 });
+    stars.push({ x: x + Math.floor(w / 2), y: y - 60 });
+
+    if (i % 6 === 3) {
+      platforms.push({ x: x + 150, y: Math.max(260, y - 76), w: 92, h: 24 });
+    }
+  }
+
+  return {
+    width: LEVEL_WIDTH,
+    height: LEVEL_HEIGHT,
+    platforms,
+    stars,
+    gift: { x: LEVEL_WIDTH - 140, y: 420, w: 54, h: 72 }
+  };
+}
+
+const level = buildLevel();
 
 export class PixelPlatformer {
   constructor(canvas, ui) {
@@ -165,10 +181,12 @@ export class PixelPlatformer {
   }
 
   drawWorld(ctx) {
-    ctx.fillStyle = '#78d7ff'; ctx.fillRect(this.cameraX, 0, this.canvas.width, this.canvas.height);
-    ctx.fillStyle = '#fff4c7';
-    for (let i = 0; i < 8; i++) ctx.fillRect(i * 260 + 45, 70 + (i % 3) * 28, 100, 24);
-    level.platforms.forEach((p) => this.drawBlock(ctx, p.x, p.y, p.w, p.h, '#73e2a7', '#2b174f'));
+    ctx.fillStyle = '#151a22'; ctx.fillRect(this.cameraX, 0, this.canvas.width, this.canvas.height);
+    ctx.fillStyle = '#243447';
+    ctx.fillRect(this.cameraX, 0, this.canvas.width, 170);
+    ctx.fillStyle = '#56616f';
+    for (let i = 0; i < LEVEL_SCALE * 8; i++) ctx.fillRect(i * 260 + 45, 70 + (i % 3) * 28, 100, 24);
+    level.platforms.forEach((p) => this.drawBlock(ctx, p.x, p.y, p.w, p.h, '#556b2f', '#0b0f14'));
     this.stars.filter((s) => !s.collected).forEach((s) => this.drawStar(ctx, s.x, s.y));
     this.drawGift(ctx, level.gift);
     this.drawPlayer(ctx);
@@ -176,6 +194,6 @@ export class PixelPlatformer {
 
   drawBlock(ctx, x, y, w, h, fill, stroke) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); ctx.strokeStyle = stroke; ctx.lineWidth = 4; ctx.strokeRect(x, y, w, h); }
   drawStar(ctx, x, y) { ctx.fillStyle = '#ffd94d'; ctx.fillRect(x - 6, y - 18, 12, 36); ctx.fillRect(x - 18, y - 6, 36, 12); ctx.fillRect(x - 12, y - 12, 24, 24); ctx.strokeStyle = '#8d5d00'; ctx.strokeRect(x - 12, y - 12, 24, 24); }
-  drawGift(ctx, g) { this.drawBlock(ctx, g.x, g.y, g.w, g.h, this.collected >= REQUIRED_STARS ? '#ff7bbd' : '#9aa0aa', '#2b174f'); ctx.fillStyle = '#fff4c7'; ctx.fillRect(g.x + 22, g.y, 10, g.h); ctx.fillRect(g.x, g.y + 22, g.w, 10); }
-  drawPlayer(ctx) { const p = this.player; this.drawBlock(ctx, p.x, p.y + 14, p.w, p.h - 14, '#ff7bbd', '#2b174f'); ctx.fillStyle = '#fff4c7'; ctx.fillRect(p.x + 8, p.y, 22, 22); ctx.fillStyle = '#2b174f'; ctx.fillRect(p.x + (p.facing > 0 ? 23 : 9), p.y + 8, 5, 5); ctx.fillStyle = '#3d65ff'; ctx.fillRect(p.x + 5, p.y + 38, 10, 14); ctx.fillRect(p.x + 22, p.y + 38, 10, 14); }
+  drawGift(ctx, g) { this.drawBlock(ctx, g.x, g.y, g.w, g.h, this.collected >= REQUIRED_STARS ? '#b15f2a' : '#56616f', '#0b0f14'); ctx.fillStyle = '#d9c58a'; ctx.fillRect(g.x + 22, g.y, 10, g.h); ctx.fillRect(g.x, g.y + 22, g.w, 10); }
+  drawPlayer(ctx) { const p = this.player; this.drawBlock(ctx, p.x, p.y + 14, p.w, p.h - 14, '#2f5f8f', '#0b0f14'); ctx.fillStyle = '#d9c58a'; ctx.fillRect(p.x + 8, p.y, 22, 22); ctx.fillStyle = '#0b0f14'; ctx.fillRect(p.x + (p.facing > 0 ? 23 : 9), p.y + 8, 5, 5); ctx.fillStyle = '#1d2f45'; ctx.fillRect(p.x + 5, p.y + 38, 10, 14); ctx.fillRect(p.x + 22, p.y + 38, 10, 14); }
 }
