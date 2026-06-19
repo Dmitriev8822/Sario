@@ -8,7 +8,7 @@ const CONFIG = {
   finalTitle: "С днём рождения!",
   finalText:
     "Ты прошёл этот путь. Дальше — ещё больше хороших событий, сильных решений и людей рядом.",
-  worldWidth: 1280,
+  worldWidth: 7000,
   gravity: 2100,
   moveSpeed: 234,
   jumpSpeed: 492,
@@ -158,7 +158,34 @@ function createPlayer() {
 }
 
 function createPlatforms() {
-  return [{ x: 0, y: FLOOR_Y, w: CONFIG.worldWidth, h: 16, type: "ground" }];
+  const jumpBlocks = [
+    { x: 360, y: 286, w: 124, h: 18 },
+    { x: 620, y: 254, w: 112, h: 18 },
+    { x: 910, y: 224, w: 128, h: 18 },
+    { x: 1210, y: 270, w: 116, h: 18 },
+    { x: 1510, y: 238, w: 150, h: 18 },
+    { x: 1840, y: 292, w: 128, h: 18 },
+    { x: 2140, y: 260, w: 116, h: 18 },
+    { x: 2440, y: 224, w: 132, h: 18 },
+    { x: 2780, y: 268, w: 108, h: 18 },
+    { x: 3090, y: 236, w: 150, h: 18 },
+    { x: 3430, y: 286, w: 120, h: 18 },
+    { x: 3740, y: 252, w: 132, h: 18 },
+    { x: 4070, y: 224, w: 116, h: 18 },
+    { x: 4380, y: 272, w: 154, h: 18 },
+    { x: 4740, y: 240, w: 126, h: 18 },
+    { x: 5070, y: 292, w: 114, h: 18 },
+    { x: 5370, y: 258, w: 148, h: 18 },
+    { x: 5710, y: 224, w: 122, h: 18 },
+    { x: 6040, y: 270, w: 142, h: 18 },
+    { x: 6380, y: 238, w: 120, h: 18 },
+    { x: 6660, y: 286, w: 150, h: 18 },
+  ];
+
+  return [
+    { x: 0, y: FLOOR_Y, w: CONFIG.worldWidth, h: 16, type: "ground" },
+    ...jumpBlocks.map((block) => ({ ...block, type: "block" })),
+  ];
 }
 
 function createCoins() {
