@@ -11,7 +11,7 @@ const CONFIG = {
   worldWidth: 1280,
   gravity: 2100,
   moveSpeed: 234,
-  jumpSpeed: 492,
+  jumpSpeed: 640,
   player: {
     name: "Друг",
     hoodie: "#0f253d",
