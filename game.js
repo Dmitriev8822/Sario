@@ -73,9 +73,9 @@ function loadPlayerSprite(src) {
 }
 
 const playerSprites = {
-  idle: loadPlayerSprite("assets/player/idle.png"),
-  run1: loadPlayerSprite("assets/player/run1.png"),
-  run2: loadPlayerSprite("assets/player/run2.png"),
+  idle: loadPlayerSprite("assets/player/young/idle.png"),
+  run1: loadPlayerSprite("assets/player/young/run1.png"),
+  run2: loadPlayerSprite("assets/player/young/run2.png"),
 };
 
 const startScreen = document.getElementById("startScreen");
