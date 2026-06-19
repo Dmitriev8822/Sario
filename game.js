@@ -28,9 +28,8 @@ const CONFIG = {
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const PLAYER_SPRITE_WIDTH = 64;
-const PLAYER_SPRITE_HEIGHT = 122;
 const OPAQUE_ALPHA_THRESHOLD = 8;
+const RUN_ANIMATION_FPS = 8;
 
 function getOpaqueImageBounds(image) {
   const scanCanvas = document.createElement("canvas");
@@ -74,8 +73,9 @@ function loadPlayerSprite(src) {
 
 const playerSprites = {
   idle: loadPlayerSprite("assets/player/young/idle.png"),
-  run1: loadPlayerSprite("assets/player/young/run1.png"),
+  run1: loadPlayerSprite("assets/player/young/run.png"),
   run2: loadPlayerSprite("assets/player/young/run2.png"),
+  jump: loadPlayerSprite("assets/player/young/jump.png"),
 };
 
 const startScreen = document.getElementById("startScreen");
@@ -138,7 +138,7 @@ function createPlayer() {
   return {
     x: 80,
     y: FLOOR_Y - 52,
-    // Физический hitbox остается компактным; PNG-спрайт рисуется крупнее с визуальным смещением.
+    // Спрайт вписывается в этот же hitbox, сохраняя исходные пропорции PNG.
     w: 30,
     h: 52,
     vx: 0,
@@ -258,7 +258,7 @@ function movePlayer(player, dt) {
   player.x = clamp(player.x, 0, CONFIG.worldWidth - player.w);
 
   if (Math.abs(player.vx) > 10 && player.grounded) {
-    player.walkTime += dt * 14;
+    player.walkTime += dt;
   }
 }
 
@@ -472,20 +472,22 @@ function drawPlayer() {
   const x = p.x - cameraX;
   const y = p.y;
   const moving = p.grounded && Math.abs(p.vx) > 30;
-  const sprite = moving
-    ? (Math.floor(p.walkTime * 6) % 2 === 0 ? playerSprites.run1 : playerSprites.run2)
-    : playerSprites.idle;
+  const jumping = !p.grounded;
+  const runSprite = Math.floor(p.walkTime * RUN_ANIMATION_FPS) % 2 === 0 ? playerSprites.run1 : playerSprites.run2;
+  const sprite = jumping && playerSprites.jump.complete && playerSprites.jump.naturalWidth > 0
+    ? playerSprites.jump
+    : (moving ? runSprite : playerSprites.idle);
   ctx.save();
   ctx.globalAlpha = 1;
   ctx.translate(x + p.w / 2, y + p.h / 2);
   ctx.scale(p.direction, 1);
   if (sprite.complete && sprite.naturalWidth > 0) {
     const source = sprite.bounds || { x: 0, y: 0, w: sprite.naturalWidth, h: sprite.naturalHeight };
-    const scale = Math.min(PLAYER_SPRITE_WIDTH / source.w, PLAYER_SPRITE_HEIGHT / source.h);
+    const scale = Math.min(p.w / source.w, p.h / source.h);
     const spriteWidth = source.w * scale;
     const spriteHeight = source.h * scale;
 
-    ctx.translate(-spriteWidth / 2, p.h / 2 - spriteHeight);
+    ctx.translate(-spriteWidth / 2, -spriteHeight / 2);
     ctx.drawImage(sprite, source.x, source.y, source.w, source.h, 0, 0, spriteWidth, spriteHeight);
   }
   ctx.restore();
