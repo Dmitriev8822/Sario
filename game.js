@@ -13,7 +13,7 @@ const CONFIG = {
   moveSpeed: 234,
   jumpSpeed: 640,
   player: {
-    name: "Друг",
+    name: "Саша",
     hoodie: "#0f253d",
     hoodieDark: "#071424",
     pants: "#1458c8",
