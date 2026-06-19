@@ -87,9 +87,10 @@ function formatAssetTitle(filename) {
 
 function createAttributeAsset(file) {
   const filename = getFilenameFromPath(file);
+  const src = file.includes("/") ? file : `${ATTRIBUTE_DIRECTORY}/${file}`;
   return {
     filename,
-    src: file.includes("/") ? file : `${ATTRIBUTE_DIRECTORY}/${file}`,
+    src,
     title: formatAssetTitle(filename),
   };
 }
@@ -138,6 +139,7 @@ async function refreshAttributeAssets() {
       const assets = uniqueAttributeAssets(files);
       if (assets.length > 0) {
         attributeAssets = assets;
+        updateEditorItemSelect();
         syncAutoLevelItems();
         state.coins = createCoins();
         updateHud();
@@ -171,6 +173,29 @@ function syncAutoLevelItems() {
   const manualItems = CONFIG.level.items.filter((item) => !item.auto);
   const autoItems = attributeAssets.map((asset, index) => buildAutoLevelItem(asset, index, attributeAssets.length));
   CONFIG.level.items = [...manualItems, ...autoItems];
+}
+
+function findSelectedAttributeAsset() {
+  const selectedSrc = editorItemSelect?.value;
+  return attributeAssets.find((asset) => asset.src === selectedSrc) || attributeAssets[0];
+}
+
+function updateEditorItemSelect() {
+  if (!editorItemSelect) return;
+
+  const selectedSrc = editorItemSelect.value;
+  editorItemSelect.replaceChildren();
+
+  attributeAssets.forEach((asset) => {
+    const option = document.createElement("option");
+    option.value = asset.src;
+    option.textContent = asset.title;
+    editorItemSelect.append(option);
+  });
+
+  if (attributeAssets.some((asset) => asset.src === selectedSrc)) {
+    editorItemSelect.value = selectedSrc;
+  }
 }
 
 function getOpaqueImageBounds(image) {
@@ -234,6 +259,7 @@ const howToBox = document.getElementById("howToBox");
 const restartButton = document.getElementById("restartButton");
 const editorModeButton = document.getElementById("editorModeButton");
 const editorToolSelect = document.getElementById("editorToolSelect");
+const editorItemSelect = document.getElementById("editorItemSelect");
 const editorExportButton = document.getElementById("editorExportButton");
 const editorResetButton = document.getElementById("editorResetButton");
 const editorStatus = document.getElementById("editorStatus");
@@ -1050,7 +1076,7 @@ function snapToGrid(value) {
 }
 
 function createEditorItem(x, y) {
-  const asset = attributeAssets[CONFIG.level.items.length % attributeAssets.length] || createAttributeAsset(ATTRIBUTE_FALLBACK_FILES[0]);
+  const asset = findSelectedAttributeAsset() || createAttributeAsset(ATTRIBUTE_FALLBACK_FILES[0]);
   return {
     x,
     y,
@@ -1146,6 +1172,7 @@ canvas.addEventListener("contextmenu", (event) => {
 });
 
 loadSavedLevel();
+updateEditorItemSelect();
 bindMobileControls();
 resetGame();
 refreshAttributeAssets();
