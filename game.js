@@ -10,8 +10,8 @@ const CONFIG = {
     "Ты прошёл этот путь. Дальше — ещё больше хороших событий, сильных решений и людей рядом.",
   worldWidth: 1280,
   gravity: 2100,
-  moveSpeed: 195,
-  jumpSpeed: 410,
+  moveSpeed: 234,
+  jumpSpeed: 492,
   player: {
     name: "Друг",
     hoodie: "#0f253d",
@@ -75,8 +75,13 @@ const playerSprites = {
   idle: loadPlayerSprite("assets/player/young/idle.png"),
   run1: loadPlayerSprite("assets/player/young/run.png"),
   run2: loadPlayerSprite("assets/player/young/run2.png"),
+  run3: loadPlayerSprite("assets/player/young/run3.png"),
   jump: loadPlayerSprite("assets/player/young/jump.png"),
 };
+
+function isSpriteReady(sprite) {
+  return sprite.complete && sprite.naturalWidth > 0;
+}
 
 const startScreen = document.getElementById("startScreen");
 const gameShell = document.getElementById("gameShell");
@@ -473,8 +478,12 @@ function drawPlayer() {
   const y = p.y;
   const moving = p.grounded && Math.abs(p.vx) > 30;
   const jumping = !p.grounded;
-  const runSprite = Math.floor(p.walkTime * RUN_ANIMATION_FPS) % 2 === 0 ? playerSprites.run1 : playerSprites.run2;
-  const sprite = jumping && playerSprites.jump.complete && playerSprites.jump.naturalWidth > 0
+  const runSprites = [playerSprites.run1, playerSprites.run2, playerSprites.run3];
+  const runFrame = Math.floor(p.walkTime * RUN_ANIMATION_FPS) % runSprites.length;
+  const runSprite = isSpriteReady(runSprites[runFrame])
+    ? runSprites[runFrame]
+    : runSprites.find(isSpriteReady) || playerSprites.idle;
+  const sprite = jumping && isSpriteReady(playerSprites.jump)
     ? playerSprites.jump
     : (moving ? runSprite : playerSprites.idle);
   ctx.save();
