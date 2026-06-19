@@ -47,17 +47,7 @@ const CONFIG = {
       { x: 6380, y: 238, w: 120, h: 18 },
       { x: 6660, y: 286, w: 150, h: 18 },
     ],
-    items: [
-      {
-        x: 760,
-        y: 202,
-        w: 34,
-        h: 34,
-        src: "assets/attributes/ChatGPT Image 19 июн. 2026 г., 14_13_05.png",
-        title: "Новая ачивка",
-        text: "Ты нашёл первый предмет уровня!",
-      },
-    ],
+    items: [],
   },
   events: [],
 };
@@ -70,6 +60,143 @@ const LEVEL_STORAGE_KEY = "sario.level";
 const GRID_SIZE = 16;
 const DEFAULT_BLOCK_SIZE = { w: 96, h: 18 };
 const DEFAULT_ITEM_SIZE = { w: 34, h: 34 };
+const ATTRIBUTE_DIRECTORY = "assets/attributes";
+const ATTRIBUTE_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
+const ATTRIBUTE_FALLBACK_FILES = ["Laptop.png", "Military ticket.png"];
+let attributeAssets = ATTRIBUTE_FALLBACK_FILES.map(createAttributeAsset);
+
+function decodeFilename(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function getFilenameFromPath(path) {
+  return decodeFilename(path.split("/").pop() || path);
+}
+
+function formatAssetTitle(filename) {
+  return filename
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() || "Предмет";
+}
+
+function createAttributeAsset(file) {
+  const filename = getFilenameFromPath(file);
+  const src = file.includes("/") ? file : `${ATTRIBUTE_DIRECTORY}/${file}`;
+  return {
+    filename,
+    src,
+    title: formatAssetTitle(filename),
+  };
+}
+
+function isAttributeImage(file) {
+  const lower = file.toLowerCase();
+  return ATTRIBUTE_IMAGE_EXTENSIONS.some((extension) => lower.endsWith(extension));
+}
+
+function uniqueAttributeAssets(files) {
+  const seen = new Set();
+  return files
+    .filter(isAttributeImage)
+    .map(createAttributeAsset)
+    .filter((asset) => {
+      if (seen.has(asset.src)) return false;
+      seen.add(asset.src);
+      return true;
+    });
+}
+
+async function fetchAttributeDirectoryFiles() {
+  const response = await fetch(`${ATTRIBUTE_DIRECTORY}/`);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const html = await response.text();
+  const document = new DOMParser().parseFromString(html, "text/html");
+  return [...document.querySelectorAll("a[href]")]
+    .map((link) => decodeFilename(link.getAttribute("href") || ""))
+    .map((href) => href.split(/[?#]/)[0])
+    .map((href) => href.replace(/^.*\//, ""));
+}
+
+async function fetchAttributeManifestFiles() {
+  const response = await fetch(`${ATTRIBUTE_DIRECTORY}/manifest.json`, { cache: "no-store" });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const manifest = await response.json();
+  return Array.isArray(manifest) ? manifest : manifest.files;
+}
+
+async function refreshAttributeAssets() {
+  const sources = [fetchAttributeDirectoryFiles, fetchAttributeManifestFiles];
+
+  for (const loadFiles of sources) {
+    try {
+      const files = await loadFiles();
+      const assets = uniqueAttributeAssets(files);
+      if (assets.length > 0) {
+        attributeAssets = assets;
+        updateEditorItemSelect();
+        syncAutoLevelItems();
+        state.coins = createCoins();
+        updateHud();
+        updateEditorStatus();
+        return;
+      }
+    } catch (error) {
+      console.info("Не удалось автоматически прочитать assets/attributes", error);
+    }
+  }
+}
+
+function buildAutoLevelItem(asset, index, total) {
+  const platformIndex = Math.round(((index + 1) * (CONFIG.level.blocks.length - 1)) / (total + 1));
+  const platform = CONFIG.level.blocks[platformIndex] || { x: 760 + index * 260, y: 236, w: 96 };
+
+  return {
+    id: `attribute-${asset.filename}`,
+    x: Math.round(platform.x + platform.w / 2 - DEFAULT_ITEM_SIZE.w / 2),
+    y: Math.max(40, platform.y - DEFAULT_ITEM_SIZE.h - 18),
+    w: DEFAULT_ITEM_SIZE.w,
+    h: DEFAULT_ITEM_SIZE.h,
+    src: asset.src,
+    title: asset.title,
+    text: `Ты собрал предмет «${asset.title}»!`,
+    auto: true,
+  };
+}
+
+function syncAutoLevelItems() {
+  const manualItems = CONFIG.level.items.filter((item) => !item.auto);
+  const autoItems = attributeAssets.map((asset, index) => buildAutoLevelItem(asset, index, attributeAssets.length));
+  CONFIG.level.items = [...manualItems, ...autoItems];
+}
+
+function findSelectedAttributeAsset() {
+  const selectedSrc = editorItemSelect?.value;
+  return attributeAssets.find((asset) => asset.src === selectedSrc) || attributeAssets[0];
+}
+
+function updateEditorItemSelect() {
+  if (!editorItemSelect) return;
+
+  const selectedSrc = editorItemSelect.value;
+  editorItemSelect.replaceChildren();
+
+  attributeAssets.forEach((asset) => {
+    const option = document.createElement("option");
+    option.value = asset.src;
+    option.textContent = asset.title;
+    editorItemSelect.append(option);
+  });
+
+  if (attributeAssets.some((asset) => asset.src === selectedSrc)) {
+    editorItemSelect.value = selectedSrc;
+  }
+}
 
 function getOpaqueImageBounds(image) {
   const scanCanvas = document.createElement("canvas");
@@ -132,6 +259,7 @@ const howToBox = document.getElementById("howToBox");
 const restartButton = document.getElementById("restartButton");
 const editorModeButton = document.getElementById("editorModeButton");
 const editorToolSelect = document.getElementById("editorToolSelect");
+const editorItemSelect = document.getElementById("editorItemSelect");
 const editorExportButton = document.getElementById("editorExportButton");
 const editorResetButton = document.getElementById("editorResetButton");
 const editorStatus = document.getElementById("editorStatus");
@@ -229,6 +357,7 @@ function loadLevelItem(item, index) {
 
 
 function createCoins() {
+  syncAutoLevelItems();
   totalCoins = CONFIG.level.items.length;
   return CONFIG.level.items.map(loadLevelItem);
 }
@@ -887,6 +1016,7 @@ function getDefaultLevel() {
 const defaultLevel = getDefaultLevel();
 
 function loadSavedLevel() {
+  syncAutoLevelItems();
   const raw = localStorage.getItem(LEVEL_STORAGE_KEY);
   if (!raw) return;
 
@@ -946,14 +1076,15 @@ function snapToGrid(value) {
 }
 
 function createEditorItem(x, y) {
+  const asset = findSelectedAttributeAsset() || createAttributeAsset(ATTRIBUTE_FALLBACK_FILES[0]);
   return {
     x,
     y,
     w: DEFAULT_ITEM_SIZE.w,
     h: DEFAULT_ITEM_SIZE.h,
-    src: defaultLevel.items[0]?.src || "",
-    title: "Новая ачивка",
-    text: "Предмет собран!",
+    src: asset.src,
+    title: asset.title,
+    text: `Ты собрал предмет «${asset.title}»!`,
   };
 }
 
@@ -1041,6 +1172,8 @@ canvas.addEventListener("contextmenu", (event) => {
 });
 
 loadSavedLevel();
+updateEditorItemSelect();
 bindMobileControls();
 resetGame();
+refreshAttributeAssets();
 draw();
