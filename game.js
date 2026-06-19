@@ -28,8 +28,6 @@ const CONFIG = {
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const PLAYER_SPRITE_WIDTH = 64;
-const PLAYER_SPRITE_HEIGHT = 122;
 const OPAQUE_ALPHA_THRESHOLD = 8;
 
 function getOpaqueImageBounds(image) {
@@ -138,7 +136,7 @@ function createPlayer() {
   return {
     x: 80,
     y: FLOOR_Y - 52,
-    // Физический hitbox остается компактным; PNG-спрайт рисуется крупнее с визуальным смещением.
+    // Спрайт вписывается в этот же hitbox, сохраняя исходные пропорции PNG.
     w: 30,
     h: 52,
     vx: 0,
@@ -481,11 +479,11 @@ function drawPlayer() {
   ctx.scale(p.direction, 1);
   if (sprite.complete && sprite.naturalWidth > 0) {
     const source = sprite.bounds || { x: 0, y: 0, w: sprite.naturalWidth, h: sprite.naturalHeight };
-    const scale = Math.min(PLAYER_SPRITE_WIDTH / source.w, PLAYER_SPRITE_HEIGHT / source.h);
+    const scale = Math.min(p.w / source.w, p.h / source.h);
     const spriteWidth = source.w * scale;
     const spriteHeight = source.h * scale;
 
-    ctx.translate(-spriteWidth / 2, p.h / 2 - spriteHeight);
+    ctx.translate(-spriteWidth / 2, -spriteHeight / 2);
     ctx.drawImage(sprite, source.x, source.y, source.w, source.h, 0, 0, spriteWidth, spriteHeight);
   }
   ctx.restore();
