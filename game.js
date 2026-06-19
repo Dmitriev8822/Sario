@@ -10,8 +10,8 @@ const CONFIG = {
     "Ты прошёл этот путь. Дальше — ещё больше хороших событий, сильных решений и людей рядом.",
   worldWidth: 1280,
   gravity: 2100,
-  moveSpeed: 390,
-  jumpSpeed: 820,
+  moveSpeed: 195,
+  jumpSpeed: 410,
   player: {
     name: "Друг",
     hoodie: "#0f253d",
