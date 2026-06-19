@@ -36,6 +36,16 @@
           <span class="topbar__label">Этап</span>
           <strong id="eventLabel">Старт</strong>
         </div>
+        <div class="editor-panel" aria-label="Редактор уровня">
+          <button class="topbar__button" id="editorModeButton">Редактор</button>
+          <select class="editor-panel__select" id="editorToolSelect" aria-label="Что добавить">
+            <option value="block">Блок</option>
+            <option value="item">Предмет</option>
+          </select>
+          <button class="topbar__button" id="editorExportButton">Экспорт</button>
+          <button class="topbar__button" id="editorResetButton">Сброс</button>
+          <span class="editor-panel__status" id="editorStatus">Блоков: 0. Предметов: 0.</span>
+        </div>
         <button class="topbar__button" id="restartButton">Заново</button>
       </div>
 
