@@ -23,6 +23,42 @@ const CONFIG = {
     cap: "#091a31",
     capLight: "#f8fafc",
   },
+  level: {
+    blocks: [
+      { x: 360, y: 286, w: 124, h: 18 },
+      { x: 620, y: 254, w: 112, h: 18 },
+      { x: 910, y: 224, w: 128, h: 18 },
+      { x: 1210, y: 270, w: 116, h: 18 },
+      { x: 1510, y: 238, w: 150, h: 18 },
+      { x: 1840, y: 292, w: 128, h: 18 },
+      { x: 2140, y: 260, w: 116, h: 18 },
+      { x: 2440, y: 224, w: 132, h: 18 },
+      { x: 2780, y: 268, w: 108, h: 18 },
+      { x: 3090, y: 236, w: 150, h: 18 },
+      { x: 3430, y: 286, w: 120, h: 18 },
+      { x: 3740, y: 252, w: 132, h: 18 },
+      { x: 4070, y: 224, w: 116, h: 18 },
+      { x: 4380, y: 272, w: 154, h: 18 },
+      { x: 4740, y: 240, w: 126, h: 18 },
+      { x: 5070, y: 292, w: 114, h: 18 },
+      { x: 5370, y: 258, w: 148, h: 18 },
+      { x: 5710, y: 224, w: 122, h: 18 },
+      { x: 6040, y: 270, w: 142, h: 18 },
+      { x: 6380, y: 238, w: 120, h: 18 },
+      { x: 6660, y: 286, w: 150, h: 18 },
+    ],
+    items: [
+      {
+        x: 760,
+        y: 202,
+        w: 34,
+        h: 34,
+        src: "assets/attributes/ChatGPT Image 19 июн. 2026 г., 14_13_05.png",
+        title: "Новая ачивка",
+        text: "Ты нашёл первый предмет уровня!",
+      },
+    ],
+  },
   events: [],
 };
 
@@ -30,6 +66,10 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const OPAQUE_ALPHA_THRESHOLD = 8;
 const RUN_ANIMATION_FPS = 8;
+const LEVEL_STORAGE_KEY = "sario.level";
+const GRID_SIZE = 16;
+const DEFAULT_BLOCK_SIZE = { w: 96, h: 18 };
+const DEFAULT_ITEM_SIZE = { w: 34, h: 34 };
 
 function getOpaqueImageBounds(image) {
   const scanCanvas = document.createElement("canvas");
@@ -73,7 +113,7 @@ function loadPlayerSprite(src) {
 
 const playerSprites = {
   idle: loadPlayerSprite("assets/player/young/idle.png"),
-  run1: loadPlayerSprite("assets/player/young/run.png"),
+  run1: loadPlayerSprite("assets/player/young/run1.png"),
   run2: loadPlayerSprite("assets/player/young/run2.png"),
   run3: loadPlayerSprite("assets/player/young/run3.png"),
   jump: loadPlayerSprite("assets/player/young/jump.png"),
@@ -90,6 +130,11 @@ const startButton = document.getElementById("startButton");
 const howToButton = document.getElementById("howToButton");
 const howToBox = document.getElementById("howToBox");
 const restartButton = document.getElementById("restartButton");
+const editorModeButton = document.getElementById("editorModeButton");
+const editorToolSelect = document.getElementById("editorToolSelect");
+const editorExportButton = document.getElementById("editorExportButton");
+const editorResetButton = document.getElementById("editorResetButton");
+const editorStatus = document.getElementById("editorStatus");
 const playAgainButton = document.getElementById("playAgainButton");
 const scoreLabel = document.getElementById("scoreLabel");
 const eventLabel = document.getElementById("eventLabel");
@@ -128,6 +173,7 @@ let running = false;
 let activeEventIndex = -1;
 let eventCardTimer = 0;
 let totalCoins = 0;
+let editorMode = false;
 
 const state = {
   player: null,
@@ -158,39 +204,33 @@ function createPlayer() {
 }
 
 function createPlatforms() {
-  const jumpBlocks = [
-    { x: 360, y: 286, w: 124, h: 18 },
-    { x: 620, y: 254, w: 112, h: 18 },
-    { x: 910, y: 224, w: 128, h: 18 },
-    { x: 1210, y: 270, w: 116, h: 18 },
-    { x: 1510, y: 238, w: 150, h: 18 },
-    { x: 1840, y: 292, w: 128, h: 18 },
-    { x: 2140, y: 260, w: 116, h: 18 },
-    { x: 2440, y: 224, w: 132, h: 18 },
-    { x: 2780, y: 268, w: 108, h: 18 },
-    { x: 3090, y: 236, w: 150, h: 18 },
-    { x: 3430, y: 286, w: 120, h: 18 },
-    { x: 3740, y: 252, w: 132, h: 18 },
-    { x: 4070, y: 224, w: 116, h: 18 },
-    { x: 4380, y: 272, w: 154, h: 18 },
-    { x: 4740, y: 240, w: 126, h: 18 },
-    { x: 5070, y: 292, w: 114, h: 18 },
-    { x: 5370, y: 258, w: 148, h: 18 },
-    { x: 5710, y: 224, w: 122, h: 18 },
-    { x: 6040, y: 270, w: 142, h: 18 },
-    { x: 6380, y: 238, w: 120, h: 18 },
-    { x: 6660, y: 286, w: 150, h: 18 },
-  ];
-
   return [
     { x: 0, y: FLOOR_Y, w: CONFIG.worldWidth, h: 16, type: "ground" },
-    ...jumpBlocks.map((block) => ({ ...block, type: "block" })),
+    ...CONFIG.level.blocks.map((block) => ({ ...block, type: "block" })),
   ];
 }
 
+function loadLevelItem(item, index) {
+  const image = new Image();
+  image.src = item.src;
+  return {
+    id: item.id || `item-${index}`,
+    x: item.x,
+    y: item.y,
+    w: item.w ?? 34,
+    h: item.h ?? 34,
+    src: item.src,
+    title: item.title || "Ачивка открыта",
+    text: item.text || "Предмет собран!",
+    collected: false,
+    image,
+  };
+}
+
+
 function createCoins() {
-  totalCoins = 0;
-  return [];
+  totalCoins = CONFIG.level.items.length;
+  return CONFIG.level.items.map(loadLevelItem);
 }
 
 function resetGame() {
@@ -207,6 +247,7 @@ function resetGame() {
   activeEventIndex = -1;
   eventCardTimer = 0;
   updateHud();
+  updateEditorStatus();
   hideEventCard();
 }
 
@@ -318,22 +359,18 @@ function resolveCollisions(player, axis) {
 }
 
 function collectCoins(player) {
-  for (const coin of state.coins) {
-    if (coin.collected) continue;
-    const cx = coin.x;
-    const cy = coin.y;
-    const closestX = clamp(cx, player.x, player.x + player.w);
-    const closestY = clamp(cy, player.y, player.y + player.h);
-    const dx = cx - closestX;
-    const dy = cy - closestY;
+  for (const item of state.coins) {
+    if (item.collected) continue;
+    if (!rectsOverlap(player, item)) continue;
 
-    if (dx * dx + dy * dy <= coin.r * coin.r) {
-      coin.collected = true;
-      player.coins += 1;
-      spawnSparkles(coin.x, coin.y);
-    }
+    item.collected = true;
+    player.coins += 1;
+    spawnSparkles(item.x + item.w / 2, item.y + item.h / 2);
+    showEventCard({ title: item.title, text: item.text });
+    eventCardTimer = 4.5;
   }
 }
+
 
 function updateCamera() {
   const target = state.player.x - VIEW.width * 0.42;
@@ -403,6 +440,8 @@ function draw() {
   ctx.clearRect(0, 0, VIEW.width, VIEW.height);
   drawSky();
   drawPlatforms();
+  drawCoins();
+  drawEditorPreview();
   drawParticles();
   drawPlayer();
 }
@@ -486,17 +525,34 @@ function drawPlatforms() {
 
 function drawCoins() {
   const t = performance.now() / 1000;
-  state.coins.forEach((coin) => {
-    if (coin.collected) return;
-    const x = coin.x - cameraX;
-    if (x < -60 || x > VIEW.width + 60) return;
-    const bob = Math.sin(t * 4 + coin.x * 0.03) * 6;
-    const cy = coin.y + bob;
-    pixelRect(x - 10, cy - 14, 20, 28, PALETTE.goldDark);
-    pixelRect(x - 14, cy - 10, 28, 20, PALETTE.gold);
-    pixelRect(x - 5, cy - 6, 6, 12, "#fff7ad");
+  state.coins.forEach((item) => {
+    if (item.collected) return;
+    const x = item.x - cameraX;
+    if (x + item.w < -60 || x > VIEW.width + 60) return;
+    const bob = Math.sin(t * 4 + item.x * 0.03) * 4;
+
+    if (item.image.complete && item.image.naturalWidth > 0) {
+      ctx.drawImage(item.image, x, item.y + bob, item.w, item.h);
+      return;
+    }
+
+    pixelRect(x, item.y + bob, item.w, item.h, PALETTE.gold);
+    pixelRect(x + 6, item.y + bob + 6, item.w - 12, item.h - 12, PALETTE.goldDark);
   });
 }
+
+function drawEditorPreview() {
+  if (!editorMode) return;
+
+  ctx.save();
+  ctx.globalAlpha = 0.75;
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "800 14px Courier New, monospace";
+  ctx.textAlign = "left";
+  ctx.fillText("Редактор: клик — добавить, Alt/Shift + клик — удалить", 18, 28);
+  ctx.restore();
+}
+
 
 
 function drawPlayer() {
@@ -824,6 +880,114 @@ function pixelHill(cx, baseY, width, height, color, shadow) {
   }
 }
 
+function getDefaultLevel() {
+  return JSON.parse(JSON.stringify(CONFIG.level));
+}
+
+const defaultLevel = getDefaultLevel();
+
+function loadSavedLevel() {
+  const raw = localStorage.getItem(LEVEL_STORAGE_KEY);
+  if (!raw) return;
+
+  try {
+    const saved = JSON.parse(raw);
+    if (Array.isArray(saved.blocks)) CONFIG.level.blocks = saved.blocks;
+    if (Array.isArray(saved.items)) CONFIG.level.items = saved.items;
+  } catch (error) {
+    console.warn("Не удалось прочитать сохранённый уровень", error);
+  }
+}
+
+function saveLevel() {
+  localStorage.setItem(LEVEL_STORAGE_KEY, JSON.stringify(CONFIG.level));
+  updateEditorStatus();
+}
+
+function resetCustomLevel() {
+  CONFIG.level = JSON.parse(JSON.stringify(defaultLevel));
+  localStorage.removeItem(LEVEL_STORAGE_KEY);
+  state.platforms = createPlatforms();
+  state.coins = createCoins();
+  updateHud();
+  updateEditorStatus();
+}
+
+function exportLevel() {
+  const json = JSON.stringify(CONFIG.level, null, 2);
+  navigator.clipboard?.writeText(json).catch(() => undefined);
+  window.prompt("Скопируй JSON уровня и вставь его в CONFIG.level:", json);
+}
+
+function updateEditorStatus() {
+  if (!editorStatus) return;
+  editorStatus.textContent = `Блоков: ${CONFIG.level.blocks.length}. Предметов: ${CONFIG.level.items.length}.`;
+}
+
+function toggleEditorMode() {
+  editorMode = !editorMode;
+  editorModeButton.textContent = editorMode ? "Играть" : "Редактор";
+  editorModeButton.classList.toggle("topbar__button--active", editorMode);
+  updateEditorStatus();
+}
+
+function getCanvasPoint(event) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = VIEW.width / rect.width;
+  const scaleY = VIEW.height / rect.height;
+  return {
+    x: (event.clientX - rect.left) * scaleX,
+    y: (event.clientY - rect.top) * scaleY,
+  };
+}
+
+function snapToGrid(value) {
+  return Math.round(value / GRID_SIZE) * GRID_SIZE;
+}
+
+function createEditorItem(x, y) {
+  return {
+    x,
+    y,
+    w: DEFAULT_ITEM_SIZE.w,
+    h: DEFAULT_ITEM_SIZE.h,
+    src: defaultLevel.items[0]?.src || "",
+    title: "Новая ачивка",
+    text: "Предмет собран!",
+  };
+}
+
+function removeNearestLevelObject(worldX, worldY, tool) {
+  const collection = tool === "item" ? CONFIG.level.items : CONFIG.level.blocks;
+  const index = collection.findIndex((object) => rectsOverlap({ x: worldX, y: worldY, w: 1, h: 1 }, object));
+  if (index >= 0) collection.splice(index, 1);
+  return index >= 0;
+}
+
+function handleEditorPointer(event) {
+  if (!editorMode) return;
+  event.preventDefault();
+
+  const tool = editorToolSelect.value;
+  const point = getCanvasPoint(event);
+  const worldX = snapToGrid(cameraX + point.x);
+  const worldY = snapToGrid(point.y);
+  const shouldRemove = event.altKey || event.shiftKey || event.button === 2;
+
+  if (shouldRemove) {
+    if (!removeNearestLevelObject(worldX, worldY, tool)) return;
+  } else if (tool === "item") {
+    CONFIG.level.items.push(createEditorItem(worldX, worldY));
+  } else {
+    CONFIG.level.blocks.push({ x: worldX, y: worldY, w: DEFAULT_BLOCK_SIZE.w, h: DEFAULT_BLOCK_SIZE.h });
+  }
+
+  state.platforms = createPlatforms();
+  state.coins = createCoins();
+  updateHud();
+  saveLevel();
+}
+
 function setKey(code, value) {
   if (["ArrowLeft", "KeyA"].includes(code)) keys.left = value;
   if (["ArrowRight", "KeyD"].includes(code)) keys.right = value;
@@ -868,6 +1032,15 @@ howToButton.addEventListener("click", () => {
   howToBox.hidden = !howToBox.hidden;
 });
 
+editorModeButton.addEventListener("click", toggleEditorMode);
+editorExportButton.addEventListener("click", exportLevel);
+editorResetButton.addEventListener("click", resetCustomLevel);
+canvas.addEventListener("pointerdown", handleEditorPointer);
+canvas.addEventListener("contextmenu", (event) => {
+  if (editorMode) event.preventDefault();
+});
+
+loadSavedLevel();
 bindMobileControls();
 resetGame();
 draw();
