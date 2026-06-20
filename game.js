@@ -190,28 +190,11 @@ async function refreshAttributeAssets() {
   }
 }
 
-async function hasRequiredCostumeSprites(costumeId) {
-  try {
-    const entries = await fetchDirectoryEntries(`${PLAYER_DIRECTORY}/${costumeId}`);
-    return PLAYER_POSES.every((pose) => entries.includes(`${pose}.png`));
-  } catch (error) {
-    console.info(`Не удалось проверить костюм ${costumeId}`, error);
-    return false;
-  }
-}
-
 async function fetchCostumeDirectoryNames() {
   const entries = await fetchDirectoryEntries(PLAYER_DIRECTORY);
-  const directories = entries
-    .filter((entry) => entry.endsWith("/") || !entry.includes("."))
+  return entries
+    .filter((entry) => entry.endsWith("/"))
     .map((entry) => entry.replace(/\/$/, ""));
-  const validDirectories = [];
-
-  for (const directory of directories) {
-    if (await hasRequiredCostumeSprites(directory)) validDirectories.push(directory);
-  }
-
-  return validDirectories;
 }
 
 async function refreshCostumeAssets() {
