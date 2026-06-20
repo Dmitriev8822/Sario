@@ -1,0 +1,14 @@
+{
+  "costumes": [
+    {
+      "id": "young",
+      "title": "Young",
+      "path": "assets/player/young"
+    },
+    {
+      "id": "army",
+      "title": "Army",
+      "path": "assets/player/army"
+    }
+  ]
+}
