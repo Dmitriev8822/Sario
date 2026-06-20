@@ -124,7 +124,7 @@ function normalizeCostumeDescriptor(costume) {
 
   if (typeof costume === "string") {
     const id = costume.replace(/\/$/, "");
-    return { id, title: formatAssetTitle(id), path: `${PLAYER_DIRECTORY}/${id}` };
+    return { id, title: formatAssetTitle(id), path: `${PLAYER_DIRECTORY}/${id}`, sprites: {} };
   }
 
   const path = (costume.path || `${PLAYER_DIRECTORY}/${costume.id}`).replace(/\/$/, "");
