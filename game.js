@@ -65,6 +65,7 @@ const ATTRIBUTE_DIRECTORY = "assets/attributes";
 const ATTRIBUTE_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
 const ATTRIBUTE_FALLBACK_FILES = ["Laptop.png", "Military ticket.png"];
 const PLAYER_DIRECTORY = "assets/player";
+const PLAYER_MANIFEST = `${PLAYER_DIRECTORY}/manifest.json`;
 const PLAYER_POSES = ["idle", "jump", "run1", "run2", "run3"];
 const DEFAULT_PLAYER_COSTUME = "young";
 const COSTUME_CHECKPOINT_HIT_WIDTH = GRID_SIZE * 2;
@@ -118,24 +119,45 @@ function uniqueAttributeAssets(files) {
     });
 }
 
-function createCostumeAsset(directory) {
-  const id = directory.replace(/\/$/, "");
+function normalizeCostumeDescriptor(costume) {
+  if (!costume) return null;
+
+  if (typeof costume === "string") {
+    const id = costume.replace(/\/$/, "");
+    return { id, title: formatAssetTitle(id), path: `${PLAYER_DIRECTORY}/${id}` };
+  }
+
+  const path = (costume.path || `${PLAYER_DIRECTORY}/${costume.id}`).replace(/\/$/, "");
+  const id = costume.id || getFilenameFromPath(path);
   return {
     id,
-    title: formatAssetTitle(id),
-    sprites: Object.fromEntries(PLAYER_POSES.map((pose) => [pose, loadPlayerSprite(`${PLAYER_DIRECTORY}/${id}/${pose}.png`)])),
+    title: costume.title || formatAssetTitle(id),
+    path,
+    sprites: costume.sprites || {},
   };
 }
 
-function uniqueCostumeAssets(directories) {
+function createCostumeAsset(costume) {
+  const descriptor = normalizeCostumeDescriptor(costume);
+  return {
+    id: descriptor.id,
+    title: descriptor.title,
+    path: descriptor.path,
+    sprites: Object.fromEntries(
+      PLAYER_POSES.map((pose) => [pose, loadPlayerSprite(descriptor.sprites[pose] || `${descriptor.path}/${pose}.png`)]),
+    ),
+  };
+}
+
+function uniqueCostumeAssets(costumes) {
   const seen = new Set();
-  return directories
-    .map((directory) => directory.replace(/\/$/, ""))
+  return costumes
+    .map(normalizeCostumeDescriptor)
     .filter(Boolean)
-    .filter((directory) => {
-      if (directory.includes(".")) return false;
-      if (seen.has(directory)) return false;
-      seen.add(directory);
+    .filter((costume) => costume.id && !costume.id.includes("."))
+    .filter((costume) => {
+      if (seen.has(costume.id)) return false;
+      seen.add(costume.id);
       return true;
     })
     .map(createCostumeAsset);
@@ -190,6 +212,13 @@ async function refreshAttributeAssets() {
   }
 }
 
+async function fetchCostumeManifest() {
+  const response = await fetch(PLAYER_MANIFEST, { cache: "no-store" });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const manifest = await response.json();
+  return Array.isArray(manifest) ? manifest : manifest.costumes;
+}
+
 async function fetchCostumeDirectoryNames() {
   const entries = await fetchDirectoryEntries(PLAYER_DIRECTORY);
   return entries
@@ -198,17 +227,22 @@ async function fetchCostumeDirectoryNames() {
 }
 
 async function refreshCostumeAssets() {
-  try {
-    const directories = await fetchCostumeDirectoryNames();
-    const assets = uniqueCostumeAssets(directories);
-    if (assets.length > 0) {
-      costumeAssets = assets;
-      updateEditorCostumeSelect();
-      if (!findCostumeAsset(state.player?.costume)) setPlayerCostume(findDefaultCostumeAsset().id);
-      updateEditorStatus();
+  const sources = [fetchCostumeManifest, fetchCostumeDirectoryNames];
+
+  for (const loadCostumes of sources) {
+    try {
+      const costumes = await loadCostumes();
+      const assets = uniqueCostumeAssets(costumes || []);
+      if (assets.length > 0) {
+        costumeAssets = assets;
+        updateEditorCostumeSelect();
+        if (!findCostumeAsset(state.player?.costume)) setPlayerCostume(findDefaultCostumeAsset().id);
+        updateEditorStatus();
+        return;
+      }
+    } catch (error) {
+      console.info("Не удалось прочитать список костюмов", error);
     }
-  } catch (error) {
-    console.info("Не удалось автоматически прочитать assets/player", error);
   }
 }
 
