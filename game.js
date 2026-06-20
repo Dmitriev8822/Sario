@@ -63,7 +63,18 @@ const DEFAULT_BLOCK_SIZE = { w: 96, h: 18 };
 const DEFAULT_ITEM_SIZE = { w: 34, h: 34 };
 const ATTRIBUTE_DIRECTORY = "assets/attributes";
 const ATTRIBUTE_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
-const ATTRIBUTE_FALLBACK_FILES = ["Laptop.png", "Military ticket.png"];
+const ATTRIBUTE_FALLBACK_FILES = [
+  {
+    file: "Laptop.png",
+    title: "Рабочая станция",
+    text: "Ты открыл ачивку «Рабочая станция» — ноутбук всегда под рукой!",
+  },
+  {
+    file: "Military ticket.png",
+    title: "Военный билет",
+    text: "Ты открыл ачивку «Военный билет» — важный этап пройден.",
+  },
+];
 const PLAYER_DIRECTORY = "assets/player";
 const PLAYER_MANIFEST = `${PLAYER_DIRECTORY}/manifest.json`;
 const PLAYER_POSES = ["idle", "jump", "run1", "run2", "run3"];
@@ -92,24 +103,44 @@ function formatAssetTitle(filename) {
     .trim() || "Предмет";
 }
 
-function createAttributeAsset(file) {
-  const filename = getFilenameFromPath(file);
-  const src = file.includes("/") ? file : `${ATTRIBUTE_DIRECTORY}/${file}`;
+function normalizeAttributeDescriptor(attribute) {
+  if (!attribute) return null;
+
+  if (typeof attribute === "string") {
+    return { file: attribute };
+  }
+
   return {
-    filename,
-    src,
-    title: formatAssetTitle(filename),
+    file: attribute.file || attribute.filename || attribute.src,
+    title: attribute.title,
+    text: attribute.text || attribute.description,
   };
 }
 
-function isAttributeImage(file) {
-  const lower = file.toLowerCase();
+function createAttributeAsset(attribute) {
+  const descriptor = normalizeAttributeDescriptor(attribute);
+  const filename = getFilenameFromPath(descriptor.file);
+  const src = descriptor.file.includes("/") ? descriptor.file : `${ATTRIBUTE_DIRECTORY}/${descriptor.file}`;
+  const title = descriptor.title || formatAssetTitle(filename);
+
+  return {
+    filename,
+    src,
+    title,
+    text: descriptor.text || `Ты собрал предмет «${title}»!`,
+  };
+}
+
+function isAttributeImage(attribute) {
+  const descriptor = normalizeAttributeDescriptor(attribute);
+  if (!descriptor?.file) return false;
+  const lower = descriptor.file.toLowerCase();
   return ATTRIBUTE_IMAGE_EXTENSIONS.some((extension) => lower.endsWith(extension));
 }
 
-function uniqueAttributeAssets(files) {
+function uniqueAttributeAssets(attributes) {
   const seen = new Set();
-  return files
+  return attributes
     .filter(isAttributeImage)
     .map(createAttributeAsset)
     .filter((asset) => {
@@ -187,11 +218,12 @@ async function fetchAttributeManifestFiles() {
   const response = await fetch(`${ATTRIBUTE_DIRECTORY}/manifest.json`, { cache: "no-store" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const manifest = await response.json();
-  return Array.isArray(manifest) ? manifest : manifest.files;
+  if (Array.isArray(manifest)) return manifest;
+  return manifest.attributes || manifest.items || manifest.files;
 }
 
 async function refreshAttributeAssets() {
-  const sources = [fetchAttributeDirectoryFiles, fetchAttributeManifestFiles];
+  const sources = [fetchAttributeManifestFiles, fetchAttributeDirectoryFiles];
 
   for (const loadFiles of sources) {
     try {
@@ -258,7 +290,7 @@ function buildAutoLevelItem(asset, index, total) {
     h: DEFAULT_ITEM_SIZE.h,
     src: asset.src,
     title: asset.title,
-    text: `Ты собрал предмет «${asset.title}»!`,
+    text: asset.text,
     auto: true,
   };
 }
@@ -1265,7 +1297,7 @@ function createEditorItem(x, y) {
     h: DEFAULT_ITEM_SIZE.h,
     src: asset.src,
     title: asset.title,
-    text: `Ты собрал предмет «${asset.title}»!`,
+    text: asset.text,
   };
 }
 

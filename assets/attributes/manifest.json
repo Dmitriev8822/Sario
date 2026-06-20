@@ -1,7 +1,19 @@
 {
-  "files": [
-    "Laptop.png",
-    "Military ticket.png",
-    "RX-8 tu tu tu tu.png"
+  "attributes": [
+    {
+      "file": "Laptop.png",
+      "title": "Рабочая станция",
+      "text": "Ты открыл ачивку «Рабочая станция» — ноутбук всегда под рукой!"
+    },
+    {
+      "file": "Military ticket.png",
+      "title": "Военный билет",
+      "text": "Ты открыл ачивку «Военный билет» — важный этап пройден."
+    },
+    {
+      "file": "RX-8 tu tu tu tu.png",
+      "title": "RX-8 tu tu tu tu",
+      "text": "Ты открыл ачивку «RX-8 tu tu tu tu» — роторный вайб найден!"
+    }
   ]
 }
