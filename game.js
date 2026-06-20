@@ -48,6 +48,7 @@ const CONFIG = {
       { x: 6660, y: 286, w: 150, h: 18 },
     ],
     items: [],
+    costumeCheckpoints: [],
   },
   events: [],
 };
@@ -63,7 +64,12 @@ const DEFAULT_ITEM_SIZE = { w: 34, h: 34 };
 const ATTRIBUTE_DIRECTORY = "assets/attributes";
 const ATTRIBUTE_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
 const ATTRIBUTE_FALLBACK_FILES = ["Laptop.png", "Military ticket.png"];
+const PLAYER_DIRECTORY = "assets/player";
+const PLAYER_POSES = ["idle", "jump", "run1", "run2", "run3"];
+const DEFAULT_PLAYER_COSTUME = "young";
+const COSTUME_CHECKPOINT_HIT_WIDTH = GRID_SIZE * 2;
 let attributeAssets = ATTRIBUTE_FALLBACK_FILES.map(createAttributeAsset);
+let costumeAssets = [createCostumeAsset(DEFAULT_PLAYER_COSTUME)];
 
 function decodeFilename(value) {
   try {
@@ -112,15 +118,47 @@ function uniqueAttributeAssets(files) {
     });
 }
 
-async function fetchAttributeDirectoryFiles() {
-  const response = await fetch(`${ATTRIBUTE_DIRECTORY}/`);
+function createCostumeAsset(directory) {
+  const id = directory.replace(/\/$/, "");
+  return {
+    id,
+    title: formatAssetTitle(id),
+    sprites: Object.fromEntries(PLAYER_POSES.map((pose) => [pose, loadPlayerSprite(`${PLAYER_DIRECTORY}/${id}/${pose}.png`)])),
+  };
+}
+
+function uniqueCostumeAssets(directories) {
+  const seen = new Set();
+  return directories
+    .map((directory) => directory.replace(/\/$/, ""))
+    .filter(Boolean)
+    .filter((directory) => {
+      if (directory.includes(".")) return false;
+      if (seen.has(directory)) return false;
+      seen.add(directory);
+      return true;
+    })
+    .map(createCostumeAsset);
+}
+
+async function fetchDirectoryEntries(directory) {
+  const response = await fetch(`${directory}/`);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const html = await response.text();
   const document = new DOMParser().parseFromString(html, "text/html");
   return [...document.querySelectorAll("a[href]")]
     .map((link) => decodeFilename(link.getAttribute("href") || ""))
     .map((href) => href.split(/[?#]/)[0])
-    .map((href) => href.replace(/^.*\//, ""));
+    .filter((href) => href && href !== "../")
+    .map((href) => {
+      const isDirectory = href.endsWith("/");
+      const parts = href.replace(/\/$/, "").split("/");
+      return `${parts.pop()}${isDirectory ? "/" : ""}`;
+    });
+}
+
+async function fetchAttributeDirectoryFiles() {
+  return fetchDirectoryEntries(ATTRIBUTE_DIRECTORY);
 }
 
 async function fetchAttributeManifestFiles() {
@@ -149,6 +187,45 @@ async function refreshAttributeAssets() {
     } catch (error) {
       console.info("Не удалось автоматически прочитать assets/attributes", error);
     }
+  }
+}
+
+async function hasRequiredCostumeSprites(costumeId) {
+  try {
+    const entries = await fetchDirectoryEntries(`${PLAYER_DIRECTORY}/${costumeId}`);
+    return PLAYER_POSES.every((pose) => entries.includes(`${pose}.png`));
+  } catch (error) {
+    console.info(`Не удалось проверить костюм ${costumeId}`, error);
+    return false;
+  }
+}
+
+async function fetchCostumeDirectoryNames() {
+  const entries = await fetchDirectoryEntries(PLAYER_DIRECTORY);
+  const directories = entries
+    .filter((entry) => entry.endsWith("/") || !entry.includes("."))
+    .map((entry) => entry.replace(/\/$/, ""));
+  const validDirectories = [];
+
+  for (const directory of directories) {
+    if (await hasRequiredCostumeSprites(directory)) validDirectories.push(directory);
+  }
+
+  return validDirectories;
+}
+
+async function refreshCostumeAssets() {
+  try {
+    const directories = await fetchCostumeDirectoryNames();
+    const assets = uniqueCostumeAssets(directories);
+    if (assets.length > 0) {
+      costumeAssets = assets;
+      updateEditorCostumeSelect();
+      if (!findCostumeAsset(state.player?.costume)) setPlayerCostume(findDefaultCostumeAsset().id);
+      updateEditorStatus();
+    }
+  } catch (error) {
+    console.info("Не удалось автоматически прочитать assets/player", error);
   }
 }
 
@@ -198,6 +275,29 @@ function updateEditorItemSelect() {
   }
 }
 
+function findSelectedCostumeAsset() {
+  const selectedCostume = editorCostumeSelect?.value;
+  return findCostumeAsset(selectedCostume) || findDefaultCostumeAsset();
+}
+
+function updateEditorCostumeSelect() {
+  if (!editorCostumeSelect) return;
+
+  const selectedCostume = editorCostumeSelect.value;
+  editorCostumeSelect.replaceChildren();
+
+  costumeAssets.forEach((asset) => {
+    const option = document.createElement("option");
+    option.value = asset.id;
+    option.textContent = asset.title;
+    editorCostumeSelect.append(option);
+  });
+
+  if (costumeAssets.some((asset) => asset.id === selectedCostume)) {
+    editorCostumeSelect.value = selectedCostume;
+  }
+}
+
 function getOpaqueImageBounds(image) {
   const scanCanvas = document.createElement("canvas");
   scanCanvas.width = image.naturalWidth;
@@ -238,13 +338,25 @@ function loadPlayerSprite(src) {
   return image;
 }
 
-const playerSprites = {
-  idle: loadPlayerSprite("assets/player/young/idle.png"),
-  run1: loadPlayerSprite("assets/player/young/run1.png"),
-  run2: loadPlayerSprite("assets/player/young/run2.png"),
-  run3: loadPlayerSprite("assets/player/young/run3.png"),
-  jump: loadPlayerSprite("assets/player/young/jump.png"),
-};
+function findCostumeAsset(costumeId) {
+  return costumeAssets.find((asset) => asset.id === costumeId);
+}
+
+function findDefaultCostumeAsset() {
+  return findCostumeAsset(DEFAULT_PLAYER_COSTUME) || costumeAssets[0] || createCostumeAsset(DEFAULT_PLAYER_COSTUME);
+}
+
+function getActivePlayerSprites() {
+  return (findCostumeAsset(state.player?.costume) || findDefaultCostumeAsset()).sprites;
+}
+
+function setPlayerCostume(costumeId) {
+  const costume = findCostumeAsset(costumeId);
+  if (!costume || !state.player) return false;
+  state.player.costume = costume.id;
+  return true;
+}
+
 
 function isSpriteReady(sprite) {
   return sprite.complete && sprite.naturalWidth > 0;
@@ -260,6 +372,7 @@ const restartButton = document.getElementById("restartButton");
 const editorModeButton = document.getElementById("editorModeButton");
 const editorToolSelect = document.getElementById("editorToolSelect");
 const editorItemSelect = document.getElementById("editorItemSelect");
+const editorCostumeSelect = document.getElementById("editorCostumeSelect");
 const editorExportButton = document.getElementById("editorExportButton");
 const editorResetButton = document.getElementById("editorResetButton");
 const editorStatus = document.getElementById("editorStatus");
@@ -308,6 +421,7 @@ const state = {
   platforms: [],
   coins: [],
   checkpoints: [],
+  triggeredCostumeCheckpoints: new Set(),
   particles: [],
   finished: false,
   startedAt: 0,
@@ -328,6 +442,7 @@ function createPlayer() {
     checkpointY: FLOOR_Y - 52,
     coins: 0,
     walkTime: 0,
+    costume: findDefaultCostumeAsset().id,
   };
 }
 
@@ -367,7 +482,9 @@ function resetGame() {
   state.player = createPlayer();
   state.platforms = createPlatforms();
   state.coins = createCoins();
+  ensureLevelCollections();
   state.checkpoints = CONFIG.events.map((event) => ({ x: event.x - 80, y: FLOOR_Y - 121 }));
+  state.triggeredCostumeCheckpoints = new Set();
   state.particles = [];
   state.finished = false;
   state.startedAt = performance.now();
@@ -438,6 +555,7 @@ function update(dt) {
   player.vy += CONFIG.gravity * dt;
 
   movePlayer(player, dt);
+  updateCostumeCheckpoints();
   collectCoins(player);
   updateCamera();
   updateEvents(dt);
@@ -500,6 +618,21 @@ function collectCoins(player) {
   }
 }
 
+
+function updateCostumeCheckpoints() {
+  const player = state.player;
+  const playerCenter = player.x + player.w / 2;
+
+  CONFIG.level.costumeCheckpoints.forEach((checkpoint, index) => {
+    if (state.triggeredCostumeCheckpoints.has(index)) return;
+    if (playerCenter < checkpoint.x) return;
+
+    if (setPlayerCostume(checkpoint.costume)) {
+      state.triggeredCostumeCheckpoints.add(index);
+      spawnSparkles(player.x + player.w / 2, player.y + player.h / 2);
+    }
+  });
+}
 
 function updateCamera() {
   const target = state.player.x - VIEW.width * 0.42;
@@ -570,6 +703,7 @@ function draw() {
   drawSky();
   drawPlatforms();
   drawCoins();
+  drawCostumeCheckpoints();
   drawEditorPreview();
   drawParticles();
   drawPlayer();
@@ -670,6 +804,26 @@ function drawCoins() {
   });
 }
 
+function drawCostumeCheckpoints() {
+  if (!editorMode) return;
+
+  CONFIG.level.costumeCheckpoints.forEach((checkpoint) => {
+    const x = checkpoint.x - cameraX;
+    if (x < -60 || x > VIEW.width + 60) return;
+    const costume = findCostumeAsset(checkpoint.costume);
+
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    pixelRect(x - 3, 0, 6, VIEW.height, "#a855f7");
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 13px Courier New, monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(costume?.title || checkpoint.costume, x, 48);
+    ctx.restore();
+  });
+}
+
 function drawEditorPreview() {
   if (!editorMode) return;
 
@@ -690,6 +844,7 @@ function drawPlayer() {
   const y = p.y;
   const moving = p.grounded && Math.abs(p.vx) > 30;
   const jumping = !p.grounded;
+  const playerSprites = getActivePlayerSprites();
   const runSprites = [playerSprites.run1, playerSprites.run2, playerSprites.run3];
   const runFrame = Math.floor(p.walkTime * RUN_ANIMATION_FPS) % runSprites.length;
   const runSprite = isSpriteReady(runSprites[runFrame])
@@ -1009,6 +1164,12 @@ function pixelHill(cx, baseY, width, height, color, shadow) {
   }
 }
 
+function ensureLevelCollections() {
+  if (!Array.isArray(CONFIG.level.blocks)) CONFIG.level.blocks = [];
+  if (!Array.isArray(CONFIG.level.items)) CONFIG.level.items = [];
+  if (!Array.isArray(CONFIG.level.costumeCheckpoints)) CONFIG.level.costumeCheckpoints = [];
+}
+
 function getDefaultLevel() {
   return JSON.parse(JSON.stringify(CONFIG.level));
 }
@@ -1016,6 +1177,7 @@ function getDefaultLevel() {
 const defaultLevel = getDefaultLevel();
 
 function loadSavedLevel() {
+  ensureLevelCollections();
   syncAutoLevelItems();
   const raw = localStorage.getItem(LEVEL_STORAGE_KEY);
   if (!raw) return;
@@ -1024,6 +1186,8 @@ function loadSavedLevel() {
     const saved = JSON.parse(raw);
     if (Array.isArray(saved.blocks)) CONFIG.level.blocks = saved.blocks;
     if (Array.isArray(saved.items)) CONFIG.level.items = saved.items;
+    if (Array.isArray(saved.costumeCheckpoints)) CONFIG.level.costumeCheckpoints = saved.costumeCheckpoints;
+    ensureLevelCollections();
   } catch (error) {
     console.warn("Не удалось прочитать сохранённый уровень", error);
   }
@@ -1051,7 +1215,7 @@ function exportLevel() {
 
 function updateEditorStatus() {
   if (!editorStatus) return;
-  editorStatus.textContent = `Блоков: ${CONFIG.level.blocks.length}. Предметов: ${CONFIG.level.items.length}.`;
+  editorStatus.textContent = `Блоков: ${CONFIG.level.blocks.length}. Предметов: ${CONFIG.level.items.length}. Чекпоинтов костюма: ${CONFIG.level.costumeCheckpoints.length}.`;
 }
 
 function toggleEditorMode() {
@@ -1088,7 +1252,22 @@ function createEditorItem(x, y) {
   };
 }
 
+function createEditorCostumeCheckpoint(x) {
+  return {
+    x,
+    costume: findSelectedCostumeAsset().id,
+  };
+}
+
 function removeNearestLevelObject(worldX, worldY, tool) {
+  if (tool === "costume") {
+    const index = CONFIG.level.costumeCheckpoints.findIndex(
+      (checkpoint) => Math.abs(checkpoint.x - worldX) <= COSTUME_CHECKPOINT_HIT_WIDTH,
+    );
+    if (index >= 0) CONFIG.level.costumeCheckpoints.splice(index, 1);
+    return index >= 0;
+  }
+
   const collection = tool === "item" ? CONFIG.level.items : CONFIG.level.blocks;
   const index = collection.findIndex((object) => rectsOverlap({ x: worldX, y: worldY, w: 1, h: 1 }, object));
   if (index >= 0) collection.splice(index, 1);
@@ -1109,6 +1288,8 @@ function handleEditorPointer(event) {
     if (!removeNearestLevelObject(worldX, worldY, tool)) return;
   } else if (tool === "item") {
     CONFIG.level.items.push(createEditorItem(worldX, worldY));
+  } else if (tool === "costume") {
+    CONFIG.level.costumeCheckpoints.push(createEditorCostumeCheckpoint(worldX));
   } else {
     CONFIG.level.blocks.push({ x: worldX, y: worldY, w: DEFAULT_BLOCK_SIZE.w, h: DEFAULT_BLOCK_SIZE.h });
   }
@@ -1173,7 +1354,9 @@ canvas.addEventListener("contextmenu", (event) => {
 
 loadSavedLevel();
 updateEditorItemSelect();
+updateEditorCostumeSelect();
 bindMobileControls();
 resetGame();
 refreshAttributeAssets();
+refreshCostumeAssets();
 draw();
