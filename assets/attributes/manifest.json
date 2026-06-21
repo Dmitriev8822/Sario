@@ -18,8 +18,9 @@
     },
     {
       "file": "plane.png",
-      "title": "plane",
-      "text": ""
+      "title": "Самолёт",
+      "text": "Ты нашёл самолёт — можно отправляться дальше.",
+      "autoPlace": false
     }
   ]
 }
