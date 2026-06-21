@@ -502,6 +502,7 @@ function normalizeLevel(level, index = 0) {
     background: level.background || "assets/background/1.png",
     worldWidth: level.worldWidth || CONFIG.worldWidth,
     start: { x: 80, y: FLOOR_Y - 52, ...(level.start || {}) },
+    finishDistance: level.finishDistance ?? 240,
     blocks: Array.isArray(level.blocks) ? level.blocks : cloneData(fallback.blocks || []),
     items: Array.isArray(level.items) ? level.items : cloneData(fallback.items || []),
     costumeCheckpoints: Array.isArray(level.costumeCheckpoints) ? level.costumeCheckpoints : [],
