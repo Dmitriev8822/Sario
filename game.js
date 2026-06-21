@@ -58,7 +58,10 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const OPAQUE_ALPHA_THRESHOLD = 8;
 const RUN_ANIMATION_FPS = 8;
-const LEVEL_STORAGE_KEY = "sario.level";
+const LEVEL_STORAGE_KEY = "sario.levels";
+const LEVEL_DIRECTORY = "assets/levels";
+const LEVEL_MANIFEST = `${LEVEL_DIRECTORY}/manifest.json`;
+const LEVEL_TRANSITION_DURATION = 1.4;
 const GRID_SIZE = 16;
 const DEFAULT_BLOCK_SIZE = { w: 96, h: 18 };
 const DEFAULT_ITEM_SIZE = { w: 34, h: 34 };
@@ -74,6 +77,7 @@ const ATTRIBUTE_FALLBACK_FILES = [
     file: "Military ticket.png",
     title: "Военный билет",
     text: "Ты открыл ачивку «Военный билет» — важный этап пройден.",
+    autoPlace: false,
   },
 ];
 const PLAYER_DIRECTORY = "assets/player";
@@ -81,9 +85,7 @@ const PLAYER_MANIFEST = `${PLAYER_DIRECTORY}/manifest.json`;
 const PLAYER_POSES = ["idle", "jump", "run1", "run2", "run3"];
 const DEFAULT_PLAYER_COSTUME = "young";
 const COSTUME_CHECKPOINT_HIT_WIDTH = GRID_SIZE * 2;
-const BACKGROUND_IMAGE_SRC = "assets/background/1.png";
 const backgroundImage = new Image();
-backgroundImage.src = BACKGROUND_IMAGE_SRC;
 let attributeAssets = ATTRIBUTE_FALLBACK_FILES.map(createAttributeAsset);
 let costumeAssets = [createCostumeAsset(DEFAULT_PLAYER_COSTUME)];
 
@@ -118,6 +120,7 @@ function normalizeAttributeDescriptor(attribute) {
     file: attribute.file || attribute.filename || attribute.src,
     title: attribute.title,
     text: attribute.text || attribute.description,
+    autoPlace: attribute.autoPlace,
   };
 }
 
@@ -132,6 +135,7 @@ function createAttributeAsset(attribute) {
     src,
     title,
     text: descriptor.text || `Ты собрал предмет «${title}»!`,
+    autoPlace: descriptor.autoPlace !== false,
   };
 }
 
@@ -283,8 +287,8 @@ async function refreshCostumeAssets() {
 }
 
 function buildAutoLevelItem(asset, index, total) {
-  const platformIndex = Math.round(((index + 1) * (CONFIG.level.blocks.length - 1)) / (total + 1));
-  const platform = CONFIG.level.blocks[platformIndex] || { x: 760 + index * 260, y: 236, w: 96 };
+  const platformIndex = Math.round(((index + 1) * (getCurrentLevel().blocks.length - 1)) / (total + 1));
+  const platform = getCurrentLevel().blocks[platformIndex] || { x: 760 + index * 260, y: 236, w: 96 };
 
   return {
     id: `attribute-${asset.filename}`,
@@ -300,9 +304,10 @@ function buildAutoLevelItem(asset, index, total) {
 }
 
 function syncAutoLevelItems() {
-  const manualItems = CONFIG.level.items.filter((item) => !item.auto);
-  const autoItems = attributeAssets.map((asset, index) => buildAutoLevelItem(asset, index, attributeAssets.length));
-  CONFIG.level.items = [...manualItems, ...autoItems];
+  const manualItems = getCurrentLevel().items.filter((item) => !item.auto);
+  const autoPlaceAssets = attributeAssets.filter((asset) => asset.autoPlace !== false);
+  const autoItems = autoPlaceAssets.map((asset, index) => buildAutoLevelItem(asset, index, autoPlaceAssets.length));
+  getCurrentLevel().items = [...manualItems, ...autoItems];
 }
 
 function findSelectedAttributeAsset() {
@@ -468,6 +473,8 @@ let activeEventIndex = -1;
 let eventCardTimer = 0;
 let totalCoins = 0;
 let editorMode = false;
+let currentLevelIndex = 0;
+let defaultLevels = [];
 
 const state = {
   player: null,
@@ -478,12 +485,146 @@ const state = {
   particles: [],
   finished: false,
   startedAt: 0,
+  totalCoinsCollected: 0,
+  transition: { active: false, elapsed: 0, targetLevelId: null, switched: false },
 };
 
-function createPlayer() {
+
+function cloneData(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeLevel(level, index = 0) {
+  const fallback = CONFIG.level || { blocks: [], items: [], costumeCheckpoints: [] };
   return {
-    x: 80,
-    y: FLOOR_Y - 52,
+    id: level.id || `level-${index + 1}`,
+    title: level.title || `Локация ${index + 1}`,
+    background: level.background || "assets/background/1.png",
+    worldWidth: level.worldWidth || CONFIG.worldWidth,
+    start: { x: 80, y: FLOOR_Y - 52, ...(level.start || {}) },
+    finishDistance: level.finishDistance ?? 240,
+    blocks: Array.isArray(level.blocks) ? level.blocks : cloneData(fallback.blocks || []),
+    items: Array.isArray(level.items) ? level.items : cloneData(fallback.items || []),
+    costumeCheckpoints: Array.isArray(level.costumeCheckpoints) ? level.costumeCheckpoints : [],
+    events: Array.isArray(level.events) ? level.events : [],
+  };
+}
+
+function getCurrentLevel() {
+  return CONFIG.levels?.[currentLevelIndex] || normalizeLevel(CONFIG.level);
+}
+
+function getCurrentWorldWidth() {
+  return getCurrentLevel().worldWidth || CONFIG.worldWidth;
+}
+
+function getCurrentEvents() {
+  return getCurrentLevel().events || CONFIG.events || [];
+}
+
+function getTotalItemsCount() {
+  return (CONFIG.levels || [getCurrentLevel()]).reduce((sum, level) => sum + (level.items?.length || 0), 0);
+}
+
+function setBackgroundForCurrentLevel() {
+  const nextSrc = getCurrentLevel().background || "assets/background/1.png";
+  if (backgroundImage.src.endsWith(nextSrc)) return;
+  backgroundImage.src = nextSrc;
+}
+
+async function fetchLevelManifest() {
+  const response = await fetch(LEVEL_MANIFEST, { cache: "no-store" });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const manifest = await response.json();
+  return Array.isArray(manifest) ? manifest : manifest.levels;
+}
+
+async function fetchLevelFile(file) {
+  const src = file.includes("/") ? file : `${LEVEL_DIRECTORY}/${file}`;
+  const response = await fetch(src, { cache: "no-store" });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+async function refreshLevels() {
+  try {
+    const manifestLevels = await fetchLevelManifest();
+    const loadedLevels = await Promise.all((manifestLevels || []).map((entry) => {
+      if (typeof entry === "string") return fetchLevelFile(entry);
+      if (entry.file) return fetchLevelFile(entry.file);
+      return entry;
+    }));
+
+    if (loadedLevels.length > 0) {
+      CONFIG.levels = loadedLevels.map(normalizeLevel);
+      defaultLevels = cloneData(CONFIG.levels);
+      currentLevelIndex = 0;
+      setBackgroundForCurrentLevel();
+      resetGame();
+    }
+  } catch (error) {
+    console.info("Не удалось загрузить уровни из assets/levels", error);
+  }
+}
+
+function findLevelIndex(levelId) {
+  return CONFIG.levels?.findIndex((level) => level.id === levelId) ?? -1;
+}
+
+function startLevelTransition(targetLevelId) {
+  if (state.transition.active) return;
+  state.transition = { active: true, elapsed: 0, targetLevelId, switched: false };
+  keys.left = false;
+  keys.right = false;
+  keys.jump = false;
+}
+
+function switchToLevel(levelId) {
+  const index = findLevelIndex(levelId);
+  if (index < 0) return false;
+
+  currentLevelIndex = index;
+  setBackgroundForCurrentLevel();
+  const start = getCurrentLevel().start || { x: 80, y: FLOOR_Y - 52 };
+  state.player.x = start.x;
+  state.player.y = start.y ?? FLOOR_Y - state.player.h;
+  state.player.vx = 0;
+  state.player.vy = 0;
+  state.player.grounded = false;
+  state.player.checkpointX = start.x;
+  state.player.checkpointY = state.player.y;
+  state.platforms = createPlatforms();
+  state.coins = createCoins();
+  state.triggeredCostumeCheckpoints = new Set();
+  state.particles = [];
+  cameraX = 0;
+  activeEventIndex = -1;
+  eventCardTimer = 0;
+  hideEventCard();
+  updateHud();
+  updateEditorStatus();
+  return true;
+}
+
+function updateLevelTransition(dt) {
+  if (!state.transition.active) return;
+
+  state.transition.elapsed += dt;
+  if (!state.transition.switched && state.transition.elapsed >= LEVEL_TRANSITION_DURATION / 2) {
+    state.transition.switched = true;
+    switchToLevel(state.transition.targetLevelId);
+  }
+
+  if (state.transition.elapsed >= LEVEL_TRANSITION_DURATION) {
+    state.transition = { active: false, elapsed: 0, targetLevelId: null, switched: false };
+  }
+}
+
+function createPlayer() {
+  const start = getCurrentLevel().start || { x: 80, y: FLOOR_Y - 52 };
+  return {
+    x: start.x,
+    y: start.y ?? FLOOR_Y - 52,
     // Спрайт вписывается в этот же hitbox, сохраняя исходные пропорции PNG.
     w: 30,
     h: 52,
@@ -491,8 +632,8 @@ function createPlayer() {
     vy: 0,
     grounded: false,
     direction: 1,
-    checkpointX: 80,
-    checkpointY: FLOOR_Y - 52,
+    checkpointX: start.x,
+    checkpointY: start.y ?? FLOOR_Y - 52,
     coins: 0,
     walkTime: 0,
     costume: findDefaultCostumeAsset().id,
@@ -501,8 +642,8 @@ function createPlayer() {
 
 function createPlatforms() {
   return [
-    { x: 0, y: FLOOR_Y, w: CONFIG.worldWidth, h: 16, type: "ground" },
-    ...CONFIG.level.blocks.map((block) => ({ ...block, type: "block" })),
+    { x: 0, y: FLOOR_Y, w: getCurrentWorldWidth(), h: 16, type: "ground" },
+    ...getCurrentLevel().blocks.map((block) => ({ ...block, type: "block" })),
   ];
 }
 
@@ -518,6 +659,8 @@ function loadLevelItem(item, index) {
     src: item.src,
     title: item.title || "Ачивка открыта",
     text: item.text || "Предмет собран!",
+    nextLevel: item.nextLevel,
+    transitionText: item.transitionText,
     collected: false,
     image,
   };
@@ -526,20 +669,24 @@ function loadLevelItem(item, index) {
 
 function createCoins() {
   syncAutoLevelItems();
-  totalCoins = CONFIG.level.items.length;
-  return CONFIG.level.items.map(loadLevelItem);
+  const level = getCurrentLevel();
+  totalCoins = level.items.length;
+  return level.items.map(loadLevelItem);
 }
 
 function resetGame() {
   cancelAnimationFrame(rafId);
+  setBackgroundForCurrentLevel();
   state.player = createPlayer();
   state.platforms = createPlatforms();
   state.coins = createCoins();
   ensureLevelCollections();
-  state.checkpoints = CONFIG.events.map((event) => ({ x: event.x - 80, y: FLOOR_Y - 121 }));
+  state.checkpoints = getCurrentEvents().map((event) => ({ x: event.x - 80, y: FLOOR_Y - 121 }));
   state.triggeredCostumeCheckpoints = new Set();
   state.particles = [];
   state.finished = false;
+  state.totalCoinsCollected = 0;
+  state.transition = { active: false, elapsed: 0, targetLevelId: null, switched: false };
   state.startedAt = performance.now();
   cameraX = 0;
   lastTime = 0;
@@ -551,6 +698,7 @@ function resetGame() {
 }
 
 function startGame() {
+  currentLevelIndex = 0;
   resetGame();
   startScreen.hidden = true;
   finishScreen.hidden = true;
@@ -568,7 +716,7 @@ function finishGame() {
   finishScreen.hidden = false;
   finishTitle.textContent = `${CONFIG.finalTitle} ${CONFIG.birthdayName}!`;
   finishText.textContent = CONFIG.finalText;
-  finishStats.textContent = `Собрано воспоминаний: ${state.player.coins} / ${totalCoins}. Время прохождения: ${seconds} сек.`;
+  finishStats.textContent = `Собрано воспоминаний: ${state.player.coins} / ${getTotalItemsCount()}. Время прохождения: ${seconds} сек.`;
 }
 
 function loop(time) {
@@ -583,8 +731,14 @@ function loop(time) {
 
 function update(dt) {
   const player = state.player;
+  updateLevelTransition(dt);
   const acceleration = 2800;
   const friction = player.grounded ? 0.82 : 0.94;
+
+  if (state.transition.active) {
+    updateParticles(dt);
+    return;
+  }
 
   if (keys.left) {
     player.vx -= acceleration * dt;
@@ -616,7 +770,7 @@ function update(dt) {
   updateHud();
 
   if (player.y > VIEW.height + 240) respawn();
-  if (player.x > CONFIG.worldWidth - 240) finishGame();
+  if (player.x > getCurrentWorldWidth() - getCurrentLevel().finishDistance) finishGame();
 }
 
 function movePlayer(player, dt) {
@@ -628,7 +782,7 @@ function movePlayer(player, dt) {
   player.y += player.vy * dt;
   resolveCollisions(player, "y");
 
-  player.x = clamp(player.x, 0, CONFIG.worldWidth - player.w);
+  player.x = clamp(player.x, 0, getCurrentWorldWidth() - player.w);
 
   if (Math.abs(player.vx) > 10 && player.grounded) {
     player.walkTime += dt;
@@ -665,9 +819,15 @@ function collectCoins(player) {
 
     item.collected = true;
     player.coins += 1;
+    state.totalCoinsCollected += 1;
     spawnSparkles(item.x + item.w / 2, item.y + item.h / 2);
     showEventCard({ title: item.title, text: item.text });
     eventCardTimer = 4.5;
+
+    if (item.nextLevel) {
+      showEventCard({ title: item.title, text: item.transitionText || item.text });
+      startLevelTransition(item.nextLevel);
+    }
   }
 }
 
@@ -676,7 +836,7 @@ function updateCostumeCheckpoints() {
   const player = state.player;
   const playerCenter = player.x + player.w / 2;
 
-  CONFIG.level.costumeCheckpoints.forEach((checkpoint, index) => {
+  getCurrentLevel().costumeCheckpoints.forEach((checkpoint, index) => {
     if (state.triggeredCostumeCheckpoints.has(index)) return;
     if (playerCenter < checkpoint.x) return;
 
@@ -690,14 +850,14 @@ function updateCostumeCheckpoints() {
 function updateCamera() {
   const target = state.player.x - VIEW.width * 0.42;
   cameraX += (target - cameraX) * 0.12;
-  cameraX = clamp(cameraX, 0, CONFIG.worldWidth - VIEW.width);
+  cameraX = clamp(cameraX, 0, getCurrentWorldWidth() - VIEW.width);
 }
 
 function updateEvents(dt) {
   const playerCenter = state.player.x + state.player.w / 2;
   let currentIndex = -1;
 
-  CONFIG.events.forEach((event, index) => {
+  getCurrentEvents().forEach((event, index) => {
     if (Math.abs(playerCenter - event.x) < 360) currentIndex = index;
     if (playerCenter > event.x - 60) {
       state.player.checkpointX = event.x - 120;
@@ -707,7 +867,7 @@ function updateEvents(dt) {
 
   if (currentIndex !== -1 && currentIndex !== activeEventIndex) {
     activeEventIndex = currentIndex;
-    showEventCard(CONFIG.events[currentIndex]);
+    showEventCard(getCurrentEvents()[currentIndex]);
     eventCardTimer = 5.5;
   }
 
@@ -738,7 +898,7 @@ function respawn() {
 
 function updateHud() {
   scoreLabel.textContent = `${state.player?.coins ?? 0} / ${totalCoins}`;
-  eventLabel.textContent = activeEventIndex >= 0 ? CONFIG.events[activeEventIndex].title : "Старт";
+  eventLabel.textContent = activeEventIndex >= 0 ? getCurrentEvents()[activeEventIndex].title : getCurrentLevel().title || "Старт";
 }
 
 function showEventCard(event) {
@@ -760,6 +920,41 @@ function draw() {
   drawEditorPreview();
   drawParticles();
   drawPlayer();
+  drawLevelTransition();
+}
+
+
+function drawLevelTransition() {
+  if (!state.transition.active) return;
+
+  const half = LEVEL_TRANSITION_DURATION / 2;
+  const elapsed = state.transition.elapsed;
+  const alpha = elapsed <= half ? elapsed / half : 1 - (elapsed - half) / half;
+  const eased = clamp(alpha, 0, 1) ** 0.75;
+
+  ctx.save();
+  ctx.globalAlpha = eased;
+  const gradient = ctx.createLinearGradient(0, 0, VIEW.width, VIEW.height);
+  gradient.addColorStop(0, "#020617");
+  gradient.addColorStop(0.55, "#312e81");
+  gradient.addColorStop(1, "#0f172a");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, VIEW.width, VIEW.height);
+
+  for (let i = 0; i < 28; i += 1) {
+    const x = (i * 97 + elapsed * 220) % VIEW.width;
+    const y = 54 + ((i * 43) % 210);
+    pixelRect(x, y, 4, 4, i % 2 === 0 ? "#fde68a" : "#bfdbfe");
+  }
+
+  ctx.globalAlpha = clamp(eased + 0.05, 0, 1);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 28px Courier New, monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("Новая локация", VIEW.width / 2, VIEW.height / 2 - 8);
+  ctx.font = "700 16px Courier New, monospace";
+  ctx.fillText("путь продолжается", VIEW.width / 2, VIEW.height / 2 + 24);
+  ctx.restore();
 }
 
 function drawSky() {
@@ -776,7 +971,7 @@ function drawWorldBackground(image) {
   const drawWidth = image.naturalWidth * scale;
   const drawHeight = image.naturalHeight * scale;
   const maxOffsetX = Math.max(0, drawWidth - VIEW.width);
-  const maxCameraX = Math.max(1, CONFIG.worldWidth - VIEW.width);
+  const maxCameraX = Math.max(1, getCurrentWorldWidth() - VIEW.width);
   const scrollProgress = clamp(cameraX / maxCameraX, 0, 1);
 
   const drawX = -maxOffsetX * scrollProgress;
@@ -801,7 +996,7 @@ function drawParallax() {
 }
 
 function drawEventScenes() {
-  CONFIG.events.forEach((event, index) => {
+  getCurrentEvents().forEach((event, index) => {
     const x = event.x - cameraX;
     if (x < -500 || x > VIEW.width + 500) return;
 
@@ -879,7 +1074,7 @@ function drawCoins() {
 function drawCostumeCheckpoints() {
   if (!editorMode) return;
 
-  CONFIG.level.costumeCheckpoints.forEach((checkpoint) => {
+  getCurrentLevel().costumeCheckpoints.forEach((checkpoint) => {
     const x = checkpoint.x - cameraX;
     if (x < -60 || x > VIEW.width + 60) return;
     const costume = findCostumeAsset(checkpoint.costume);
@@ -959,7 +1154,7 @@ function drawParticles() {
 }
 
 function drawFinishGate() {
-  const x = CONFIG.worldWidth - 280 - cameraX;
+  const x = getCurrentWorldWidth() - 280 - cameraX;
   if (x < -200 || x > VIEW.width + 200) return;
 
   pixelRect(x, FLOOR_Y - 170, 120, 170, "#7c3aed");
@@ -1236,17 +1431,17 @@ function pixelHill(cx, baseY, width, height, color, shadow) {
   }
 }
 
-function ensureLevelCollections() {
-  if (!Array.isArray(CONFIG.level.blocks)) CONFIG.level.blocks = [];
-  if (!Array.isArray(CONFIG.level.items)) CONFIG.level.items = [];
-  if (!Array.isArray(CONFIG.level.costumeCheckpoints)) CONFIG.level.costumeCheckpoints = [];
+function ensureLevelCollections(level = getCurrentLevel()) {
+  if (!Array.isArray(level.blocks)) level.blocks = [];
+  if (!Array.isArray(level.items)) level.items = [];
+  if (!Array.isArray(level.costumeCheckpoints)) level.costumeCheckpoints = [];
 }
 
-function getDefaultLevel() {
-  return JSON.parse(JSON.stringify(CONFIG.level));
+function getDefaultLevels() {
+  return cloneData(CONFIG.levels || [getCurrentLevel()]);
 }
 
-const defaultLevel = getDefaultLevel();
+defaultLevels = getDefaultLevels();
 
 function loadSavedLevel() {
   ensureLevelCollections();
@@ -1256,9 +1451,16 @@ function loadSavedLevel() {
 
   try {
     const saved = JSON.parse(raw);
-    if (Array.isArray(saved.blocks)) CONFIG.level.blocks = saved.blocks;
-    if (Array.isArray(saved.items)) CONFIG.level.items = saved.items;
-    if (Array.isArray(saved.costumeCheckpoints)) CONFIG.level.costumeCheckpoints = saved.costumeCheckpoints;
+    const savedLevels = Array.isArray(saved) ? saved : saved.levels;
+    if (Array.isArray(savedLevels)) {
+      CONFIG.levels = savedLevels.map(normalizeLevel);
+      currentLevelIndex = Math.min(currentLevelIndex, CONFIG.levels.length - 1);
+    } else {
+      const level = getCurrentLevel();
+      if (Array.isArray(saved.blocks)) level.blocks = saved.blocks;
+      if (Array.isArray(saved.items)) level.items = saved.items;
+      if (Array.isArray(saved.costumeCheckpoints)) level.costumeCheckpoints = saved.costumeCheckpoints;
+    }
     ensureLevelCollections();
   } catch (error) {
     console.warn("Не удалось прочитать сохранённый уровень", error);
@@ -1266,12 +1468,14 @@ function loadSavedLevel() {
 }
 
 function saveLevel() {
-  localStorage.setItem(LEVEL_STORAGE_KEY, JSON.stringify(CONFIG.level));
+  localStorage.setItem(LEVEL_STORAGE_KEY, JSON.stringify(CONFIG.levels || [getCurrentLevel()]));
   updateEditorStatus();
 }
 
 function resetCustomLevel() {
-  CONFIG.level = JSON.parse(JSON.stringify(defaultLevel));
+  CONFIG.levels = cloneData(defaultLevels);
+  currentLevelIndex = 0;
+  setBackgroundForCurrentLevel();
   localStorage.removeItem(LEVEL_STORAGE_KEY);
   state.platforms = createPlatforms();
   state.coins = createCoins();
@@ -1280,14 +1484,14 @@ function resetCustomLevel() {
 }
 
 function exportLevel() {
-  const json = JSON.stringify(CONFIG.level, null, 2);
+  const json = JSON.stringify(CONFIG.levels || [getCurrentLevel()], null, 2);
   navigator.clipboard?.writeText(json).catch(() => undefined);
-  window.prompt("Скопируй JSON уровня и вставь его в CONFIG.level:", json);
+  window.prompt("Скопируй JSON уровней и сохрани его в assets/levels/*.json:", json);
 }
 
 function updateEditorStatus() {
   if (!editorStatus) return;
-  editorStatus.textContent = `Блоков: ${CONFIG.level.blocks.length}. Предметов: ${CONFIG.level.items.length}. Чекпоинтов костюма: ${CONFIG.level.costumeCheckpoints.length}.`;
+  editorStatus.textContent = `Блоков: ${getCurrentLevel().blocks.length}. Предметов: ${getCurrentLevel().items.length}. Чекпоинтов костюма: ${getCurrentLevel().costumeCheckpoints.length}.`;
 }
 
 function toggleEditorMode() {
@@ -1333,14 +1537,14 @@ function createEditorCostumeCheckpoint(x) {
 
 function removeNearestLevelObject(worldX, worldY, tool) {
   if (tool === "costume") {
-    const index = CONFIG.level.costumeCheckpoints.findIndex(
+    const index = getCurrentLevel().costumeCheckpoints.findIndex(
       (checkpoint) => Math.abs(checkpoint.x - worldX) <= COSTUME_CHECKPOINT_HIT_WIDTH,
     );
-    if (index >= 0) CONFIG.level.costumeCheckpoints.splice(index, 1);
+    if (index >= 0) getCurrentLevel().costumeCheckpoints.splice(index, 1);
     return index >= 0;
   }
 
-  const collection = tool === "item" ? CONFIG.level.items : CONFIG.level.blocks;
+  const collection = tool === "item" ? getCurrentLevel().items : getCurrentLevel().blocks;
   const index = collection.findIndex((object) => rectsOverlap({ x: worldX, y: worldY, w: 1, h: 1 }, object));
   if (index >= 0) collection.splice(index, 1);
   return index >= 0;
@@ -1359,11 +1563,11 @@ function handleEditorPointer(event) {
   if (shouldRemove) {
     if (!removeNearestLevelObject(worldX, worldY, tool)) return;
   } else if (tool === "item") {
-    CONFIG.level.items.push(createEditorItem(worldX, worldY));
+    getCurrentLevel().items.push(createEditorItem(worldX, worldY));
   } else if (tool === "costume") {
-    CONFIG.level.costumeCheckpoints.push(createEditorCostumeCheckpoint(worldX));
+    getCurrentLevel().costumeCheckpoints.push(createEditorCostumeCheckpoint(worldX));
   } else {
-    CONFIG.level.blocks.push({ x: worldX, y: worldY, w: DEFAULT_BLOCK_SIZE.w, h: DEFAULT_BLOCK_SIZE.h });
+    getCurrentLevel().blocks.push({ x: worldX, y: worldY, w: DEFAULT_BLOCK_SIZE.w, h: DEFAULT_BLOCK_SIZE.h });
   }
 
   state.platforms = createPlatforms();
@@ -1424,11 +1628,17 @@ canvas.addEventListener("contextmenu", (event) => {
   if (editorMode) event.preventDefault();
 });
 
-loadSavedLevel();
-updateEditorItemSelect();
-updateEditorCostumeSelect();
-bindMobileControls();
-resetGame();
-refreshAttributeAssets();
-refreshCostumeAssets();
-draw();
+async function initializeGame() {
+  await refreshLevels();
+  loadSavedLevel();
+  setBackgroundForCurrentLevel();
+  updateEditorItemSelect();
+  updateEditorCostumeSelect();
+  bindMobileControls();
+  resetGame();
+  refreshAttributeAssets();
+  refreshCostumeAssets();
+  draw();
+}
+
+initializeGame();
