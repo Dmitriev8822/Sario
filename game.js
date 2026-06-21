@@ -8,7 +8,8 @@ const CONFIG = {
   finalTitle: "С днём рождения!",
   finalText:
     "Ты прошёл этот путь. Дальше — ещё больше хороших событий, сильных решений и людей рядом.",
-  worldWidth: 7000,
+  // Ширина мира совпадает с панорамным фоном, масштабированным под высоту VIEW.
+  worldWidth: 6623,
   gravity: 2100,
   moveSpeed: 234,
   jumpSpeed: 640,
@@ -80,6 +81,9 @@ const PLAYER_MANIFEST = `${PLAYER_DIRECTORY}/manifest.json`;
 const PLAYER_POSES = ["idle", "jump", "run1", "run2", "run3"];
 const DEFAULT_PLAYER_COSTUME = "young";
 const COSTUME_CHECKPOINT_HIT_WIDTH = GRID_SIZE * 2;
+const BACKGROUND_IMAGE_SRC = "assets/background/1.png";
+const backgroundImage = new Image();
+backgroundImage.src = BACKGROUND_IMAGE_SRC;
 let attributeAssets = ATTRIBUTE_FALLBACK_FILES.map(createAttributeAsset);
 let costumeAssets = [createCostumeAsset(DEFAULT_PLAYER_COSTUME)];
 
@@ -759,7 +763,26 @@ function draw() {
 }
 
 function drawSky() {
-  pixelRect(0, 0, VIEW.width, VIEW.height, PALETTE.sky3);
+  if (!backgroundImage.complete || backgroundImage.naturalWidth <= 0) {
+    pixelRect(0, 0, VIEW.width, VIEW.height, PALETTE.sky3);
+    return;
+  }
+
+  drawWorldBackground(backgroundImage);
+}
+
+function drawWorldBackground(image) {
+  const scale = Math.max(VIEW.width / image.naturalWidth, VIEW.height / image.naturalHeight);
+  const drawWidth = image.naturalWidth * scale;
+  const drawHeight = image.naturalHeight * scale;
+  const maxOffsetX = Math.max(0, drawWidth - VIEW.width);
+  const maxCameraX = Math.max(1, CONFIG.worldWidth - VIEW.width);
+  const scrollProgress = clamp(cameraX / maxCameraX, 0, 1);
+
+  const drawX = -maxOffsetX * scrollProgress;
+  const drawY = (VIEW.height - drawHeight) / 2;
+
+  ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
 }
 
 function drawParallax() {
