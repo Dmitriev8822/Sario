@@ -707,18 +707,6 @@ function startGame() {
   rafId = requestAnimationFrame(loop);
 }
 
-function finishGame() {
-  running = false;
-  state.finished = true;
-  cancelAnimationFrame(rafId);
-  const seconds = Math.round((performance.now() - state.startedAt) / 1000);
-  gameShell.hidden = true;
-  finishScreen.hidden = false;
-  finishTitle.textContent = `${CONFIG.finalTitle} ${CONFIG.birthdayName}!`;
-  finishText.textContent = CONFIG.finalText;
-  finishStats.textContent = `Собрано воспоминаний: ${state.player.coins} / ${getTotalItemsCount()}. Время прохождения: ${seconds} сек.`;
-}
-
 function loop(time) {
   if (!running) return;
   if (!lastTime) lastTime = time;
@@ -770,7 +758,6 @@ function update(dt) {
   updateHud();
 
   if (player.y > VIEW.height + 240) respawn();
-  if (player.x > getCurrentWorldWidth() - getCurrentLevel().finishDistance) finishGame();
 }
 
 function movePlayer(player, dt) {
@@ -1151,22 +1138,6 @@ function drawParticles() {
     pixelRect(x, p.y, p.size, p.size, p.color);
     ctx.globalAlpha = 1;
   });
-}
-
-function drawFinishGate() {
-  const x = getCurrentWorldWidth() - 280 - cameraX;
-  if (x < -200 || x > VIEW.width + 200) return;
-
-  pixelRect(x, FLOOR_Y - 170, 120, 170, "#7c3aed");
-  pixelRect(x + 22, FLOOR_Y - 128, 76, 128, "#c4b5fd");
-  pixelRect(x + 34, FLOOR_Y - 112, 52, 112, "#8b5cf6");
-  ctx.fillStyle = "#facc15";
-  ctx.font = "900 54px Courier New, monospace";
-  ctx.textAlign = "center";
-  ctx.fillText("★", x + 60, FLOOR_Y - 92);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "900 20px Courier New, monospace";
-  ctx.fillText("ФИНИШ", x + 60, FLOOR_Y - 28);
 }
 
 function drawForeground() {
