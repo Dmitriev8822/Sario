@@ -64,11 +64,14 @@ const LEVEL_DIRECTORY = "assets/levels";
 const LEVEL_MANIFEST = `${LEVEL_DIRECTORY}/manifest.json`;
 const LEVEL_TRANSITION_DURATION = 1.4;
 const GRID_SIZE = 16;
-const BLOCK_TILE_SRC = "assets/background/блок.svg";
+const BLOCK_TILE_VERSION = "2026-06-23";
+const BLOCK_TILE_SRC = `assets/background/блок.svg?v=${BLOCK_TILE_VERSION}`;
 const GROUND_BLOCK_TILE_SIZE = 40;
-const AIR_BLOCK_TILE_SIZE = 20;
-const DEFAULT_BLOCK_SIZE = { w: 48, h: AIR_BLOCK_TILE_SIZE };
-const AIR_BLOCK_SCALE = 0.5;
+const AIR_BLOCK_TILE_WIDTH = GROUND_BLOCK_TILE_SIZE / 1.5;
+const AIR_BLOCK_TILE_HEIGHT = GROUND_BLOCK_TILE_SIZE / 2;
+const DEFAULT_BLOCK_SIZE = { w: Math.round(GROUND_BLOCK_TILE_SIZE * 2 / 1.5), h: AIR_BLOCK_TILE_HEIGHT };
+const AIR_BLOCK_WIDTH_SCALE = 2 / 3;
+const AIR_BLOCK_HEIGHT_SCALE = 0.5;
 const DEFAULT_ITEM_SIZE = { w: 34, h: 34 };
 const DEFAULT_COIN_SIZE = { w: 22, h: 22 };
 const ATTRIBUTE_DIRECTORY = "assets/attributes";
@@ -656,10 +659,10 @@ function createPlatforms() {
 }
 
 function createAirBlockPlatform(block) {
-  const sourceW = block.w ?? DEFAULT_BLOCK_SIZE.w / AIR_BLOCK_SCALE;
-  const sourceH = block.h ?? DEFAULT_BLOCK_SIZE.h / AIR_BLOCK_SCALE;
-  const w = Math.max(24, Math.round(sourceW * AIR_BLOCK_SCALE));
-  const h = Math.max(AIR_BLOCK_TILE_SIZE, Math.round(sourceH * AIR_BLOCK_SCALE));
+  const sourceW = block.w ?? DEFAULT_BLOCK_SIZE.w / AIR_BLOCK_WIDTH_SCALE;
+  const sourceH = block.h ?? DEFAULT_BLOCK_SIZE.h / AIR_BLOCK_HEIGHT_SCALE;
+  const w = Math.max(Math.round(AIR_BLOCK_TILE_WIDTH), Math.round(sourceW * AIR_BLOCK_WIDTH_SCALE));
+  const h = Math.max(AIR_BLOCK_TILE_HEIGHT, Math.round(sourceH * AIR_BLOCK_HEIGHT_SCALE));
 
   return {
     ...block,
@@ -1070,23 +1073,21 @@ function drawPlatforms() {
     const x = p.x - cameraX;
     if (x + p.w < -50 || x > VIEW.width + 50) return;
 
-    if (p.type === "ground") {
-      drawGroundPlatform(x, p.y, p.w, p.h);
-    } else {
-      drawAirBlock(x, p.y, p.w, p.h);
-    }
+    if (p.type === "ground") return;
+
+    drawAirBlock(x, p.y, p.w, p.h);
   });
 }
 
 function drawGroundPlatform(x, y, w, h) {
-  drawBlockTileSurface(x, y, w, h, GROUND_BLOCK_TILE_SIZE);
+  drawBlockTileSurface(x, y, w, h, GROUND_BLOCK_TILE_SIZE, GROUND_BLOCK_TILE_SIZE);
 }
 
 function drawAirBlock(x, y, w, h) {
-  drawBlockTileSurface(x, y, w, h, AIR_BLOCK_TILE_SIZE);
+  drawBlockTileSurface(x, y, w, h, AIR_BLOCK_TILE_WIDTH, AIR_BLOCK_TILE_HEIGHT);
 }
 
-function drawBlockTileSurface(x, y, w, h, tileSize) {
+function drawBlockTileSurface(x, y, w, h, tileWidth, tileHeight = tileWidth) {
   if (!blockImage.complete || blockImage.naturalWidth <= 0) {
     pixelRect(x, y, w, h, PALETTE.wood);
     return;
@@ -1097,9 +1098,9 @@ function drawBlockTileSurface(x, y, w, h, tileSize) {
   ctx.rect(x, y, w, h);
   ctx.clip();
 
-  for (let tileX = x; tileX < x + w; tileX += tileSize) {
-    for (let tileY = y; tileY < y + h; tileY += tileSize) {
-      ctx.drawImage(blockImage, tileX, tileY, tileSize, tileSize);
+  for (let tileX = x; tileX < x + w; tileX += tileWidth) {
+    for (let tileY = y; tileY < y + h; tileY += tileHeight) {
+      ctx.drawImage(blockImage, tileX, tileY, tileWidth, tileHeight);
     }
   }
 
