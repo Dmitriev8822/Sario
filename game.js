@@ -1574,6 +1574,19 @@ function snapToGrid(value) {
   return Math.round(value / GRID_SIZE) * GRID_SIZE;
 }
 
+
+function createEditorBlock(x, y) {
+  const sourceW = Math.round(DEFAULT_BLOCK_SIZE.w / AIR_BLOCK_WIDTH_SCALE);
+  const sourceH = Math.round(DEFAULT_BLOCK_SIZE.h / AIR_BLOCK_HEIGHT_SCALE);
+
+  return {
+    x: Math.round(x - (sourceW - DEFAULT_BLOCK_SIZE.w) / 2),
+    y: Math.round(y - (sourceH - DEFAULT_BLOCK_SIZE.h)),
+    w: sourceW,
+    h: sourceH,
+  };
+}
+
 function createEditorItem(x, y) {
   const asset = findSelectedAttributeAsset() || createAttributeAsset(ATTRIBUTE_FALLBACK_FILES[0]);
   return {
@@ -1643,7 +1656,7 @@ function handleEditorPointer(event) {
   } else if (tool === "costume") {
     getCurrentLevel().costumeCheckpoints.push(createEditorCostumeCheckpoint(worldX));
   } else {
-    getCurrentLevel().blocks.push({ x: worldX, y: worldY, w: DEFAULT_BLOCK_SIZE.w, h: DEFAULT_BLOCK_SIZE.h });
+    getCurrentLevel().blocks.push(createEditorBlock(worldX, worldY));
   }
 
   state.platforms = createPlatforms();
