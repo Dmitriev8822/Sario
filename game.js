@@ -420,12 +420,8 @@ function isSpriteReady(sprite) {
   return sprite.complete && sprite.naturalWidth > 0;
 }
 
-const startScreen = document.getElementById("startScreen");
 const gameShell = document.getElementById("gameShell");
 const finishScreen = document.getElementById("finishScreen");
-const startButton = document.getElementById("startButton");
-const howToButton = document.getElementById("howToButton");
-const howToBox = document.getElementById("howToBox");
 const restartButton = document.getElementById("restartButton");
 const editorModeButton = document.getElementById("editorModeButton");
 const editorToolSelect = document.getElementById("editorToolSelect");
@@ -700,7 +696,6 @@ function resetGame() {
 function startGame() {
   currentLevelIndex = 0;
   resetGame();
-  startScreen.hidden = true;
   finishScreen.hidden = true;
   gameShell.hidden = false;
   running = true;
@@ -1584,13 +1579,8 @@ function bindMobileControls() {
   });
 }
 
-startButton.addEventListener("click", startGame);
 restartButton.addEventListener("click", startGame);
 playAgainButton.addEventListener("click", startGame);
-howToButton.addEventListener("click", () => {
-  howToBox.hidden = !howToBox.hidden;
-});
-
 editorModeButton.addEventListener("click", toggleEditorMode);
 editorExportButton.addEventListener("click", exportLevel);
 editorResetButton.addEventListener("click", resetCustomLevel);
@@ -1606,10 +1596,8 @@ async function initializeGame() {
   updateEditorItemSelect();
   updateEditorCostumeSelect();
   bindMobileControls();
-  resetGame();
-  refreshAttributeAssets();
-  refreshCostumeAssets();
-  draw();
+  await Promise.all([refreshAttributeAssets(), refreshCostumeAssets()]);
+  startGame();
 }
 
 initializeGame();
