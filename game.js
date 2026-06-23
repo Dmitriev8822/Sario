@@ -432,8 +432,10 @@ function isSpriteReady(sprite) {
 }
 
 const gameShell = document.getElementById("gameShell");
+const gameTopbar = document.getElementById("gameTopbar");
 const finishScreen = document.getElementById("finishScreen");
 const restartButton = document.getElementById("restartButton");
+const editorToggleButton = document.getElementById("editorToggleButton");
 const editorModeButton = document.getElementById("editorModeButton");
 const editorToolSelect = document.getElementById("editorToolSelect");
 const editorItemSelect = document.getElementById("editorItemSelect");
@@ -1554,11 +1556,19 @@ function updateEditorStatus() {
   editorStatus.textContent = `Блоков: ${getCurrentLevel().blocks.length}. Предметов: ${getCurrentLevel().items.length}. Монеток: ${(getCurrentLevel().coins || []).length}. Чекпоинтов костюма: ${getCurrentLevel().costumeCheckpoints.length}.`;
 }
 
-function toggleEditorMode() {
-  editorMode = !editorMode;
+function updateEditorUi() {
+  gameShell.classList.toggle("game-shell--editor-open", editorMode);
+  gameTopbar.setAttribute("aria-hidden", String(!editorMode));
+  editorToggleButton.setAttribute("aria-expanded", String(editorMode));
+  editorToggleButton.textContent = editorMode ? "Скрыть панель" : "Редактор";
   editorModeButton.textContent = editorMode ? "Играть" : "Редактор";
   editorModeButton.classList.toggle("topbar__button--active", editorMode);
   updateEditorStatus();
+}
+
+function toggleEditorMode() {
+  editorMode = !editorMode;
+  updateEditorUi();
 }
 
 function getCanvasPoint(event) {
@@ -1705,6 +1715,7 @@ function bindMobileControls() {
 
 restartButton.addEventListener("click", startGame);
 playAgainButton.addEventListener("click", startGame);
+editorToggleButton.addEventListener("click", toggleEditorMode);
 editorModeButton.addEventListener("click", toggleEditorMode);
 editorExportButton.addEventListener("click", exportLevel);
 editorResetButton.addEventListener("click", resetCustomLevel);
@@ -1719,6 +1730,7 @@ async function initializeGame() {
   setBackgroundForCurrentLevel();
   updateEditorItemSelect();
   updateEditorCostumeSelect();
+  updateEditorUi();
   bindMobileControls();
   await Promise.all([refreshAttributeAssets(), refreshCostumeAssets()]);
   startGame();
