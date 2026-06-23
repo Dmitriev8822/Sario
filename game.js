@@ -64,7 +64,8 @@ const LEVEL_DIRECTORY = "assets/levels";
 const LEVEL_MANIFEST = `${LEVEL_DIRECTORY}/manifest.json`;
 const LEVEL_TRANSITION_DURATION = 1.4;
 const GRID_SIZE = 16;
-const DEFAULT_BLOCK_SIZE = { w: 96, h: 18 };
+const DEFAULT_BLOCK_SIZE = { w: 48, h: 9 };
+const AIR_BLOCK_SCALE = 0.5;
 const DEFAULT_ITEM_SIZE = { w: 34, h: 34 };
 const DEFAULT_COIN_SIZE = { w: 22, h: 22 };
 const ATTRIBUTE_DIRECTORY = "assets/attributes";
@@ -644,9 +645,25 @@ function createPlayer() {
 
 function createPlatforms() {
   return [
-    { x: 0, y: FLOOR_Y, w: getCurrentWorldWidth(), h: 16, type: "ground" },
-    ...getCurrentLevel().blocks.map((block) => ({ ...block, type: "block" })),
+    { x: 0, y: FLOOR_Y, w: getCurrentWorldWidth(), h: 28, type: "ground" },
+    ...getCurrentLevel().blocks.map((block) => createAirBlockPlatform(block)),
   ];
+}
+
+function createAirBlockPlatform(block) {
+  const sourceW = block.w ?? DEFAULT_BLOCK_SIZE.w / AIR_BLOCK_SCALE;
+  const sourceH = block.h ?? DEFAULT_BLOCK_SIZE.h / AIR_BLOCK_SCALE;
+  const w = Math.max(24, Math.round(sourceW * AIR_BLOCK_SCALE));
+  const h = Math.max(8, Math.round(sourceH * AIR_BLOCK_SCALE));
+
+  return {
+    ...block,
+    x: Math.round(block.x + (sourceW - w) / 2),
+    y: Math.round(block.y + sourceH - h),
+    w,
+    h,
+    type: "block",
+  };
 }
 
 function loadLevelItem(item, index) {
@@ -1049,14 +1066,39 @@ function drawPlatforms() {
     if (x + p.w < -50 || x > VIEW.width + 50) return;
 
     if (p.type === "ground") {
-      pixelRect(x, p.y, p.w, p.h, PALETTE.dirt);
-      pixelRect(x, p.y, p.w, 4, PALETTE.grass);
+      drawGroundPlatform(x, p.y, p.w, p.h);
     } else {
-      pixelRect(x, p.y, p.w, p.h, PALETTE.wood);
-      pixelRect(x, p.y - 8, p.w, 12, "#f59e0b");
-      for (let i = 16; i < p.w; i += 48) pixelRect(x + i, p.y + 10, 24, 5, "#92400e");
+      drawAirBlock(x, p.y, p.w, p.h);
     }
   });
+}
+
+function drawGroundPlatform(x, y, w, h) {
+  pixelRect(x, y, w, h, "#6b3f22");
+  pixelRect(x, y, w, 5, "#39b54a");
+  pixelRect(x, y + 5, w, 3, "#2f8f3b");
+  pixelRect(x, y + h - 5, w, 5, "#3b2418");
+
+  for (let i = 0; i < w; i += 40) {
+    const pebbleY = y + 11 + ((i / 40) % 3) * 4;
+    pixelRect(x + i + 10, pebbleY, 12, 3, "#8a5a35");
+    pixelRect(x + i + 27, y + h - 11, 7, 3, "#4f2f1d");
+  }
+}
+
+function drawAirBlock(x, y, w, h) {
+  const topH = Math.max(3, Math.round(h * 0.45));
+  pixelRect(x, y, w, h, "#8b5a2b");
+  pixelRect(x, y, w, topH, "#d99a3d");
+  pixelRect(x + 2, y + 2, Math.max(0, w - 4), 2, "#f6c267");
+  pixelRect(x, y + h - 3, w, 3, "#4b2f1a");
+  pixelRect(x, y, 3, h, "#f0b65a");
+  pixelRect(x + w - 3, y + 2, 3, Math.max(0, h - 2), "#5d351d");
+
+  const seamStep = 24;
+  for (let i = seamStep; i < w; i += seamStep) {
+    pixelRect(x + i, y + 2, 2, Math.max(3, h - 4), "#6f421f");
+  }
 }
 
 function drawCoins() {
