@@ -49,6 +49,7 @@ const CONFIG = {
       { x: 6660, y: 286, w: 150, h: 18 },
     ],
     items: [],
+    coins: [],
     costumeCheckpoints: [],
   },
   events: [],
@@ -65,6 +66,7 @@ const LEVEL_TRANSITION_DURATION = 1.4;
 const GRID_SIZE = 16;
 const DEFAULT_BLOCK_SIZE = { w: 96, h: 18 };
 const DEFAULT_ITEM_SIZE = { w: 34, h: 34 };
+const DEFAULT_COIN_SIZE = { w: 22, h: 22 };
 const ATTRIBUTE_DIRECTORY = "assets/attributes";
 const ATTRIBUTE_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
 const ATTRIBUTE_FALLBACK_FILES = [
@@ -491,7 +493,7 @@ function cloneData(value) {
 }
 
 function normalizeLevel(level, index = 0) {
-  const fallback = CONFIG.level || { blocks: [], items: [], costumeCheckpoints: [] };
+  const fallback = CONFIG.level || { blocks: [], items: [], coins: [], costumeCheckpoints: [] };
   return {
     id: level.id || `level-${index + 1}`,
     title: level.title || `Локация ${index + 1}`,
@@ -501,6 +503,7 @@ function normalizeLevel(level, index = 0) {
     finishDistance: level.finishDistance ?? 240,
     blocks: Array.isArray(level.blocks) ? level.blocks : cloneData(fallback.blocks || []),
     items: Array.isArray(level.items) ? level.items : cloneData(fallback.items || []),
+    coins: Array.isArray(level.coins) ? level.coins : cloneData(fallback.coins || []),
     costumeCheckpoints: Array.isArray(level.costumeCheckpoints) ? level.costumeCheckpoints : [],
     events: Array.isArray(level.events) ? level.events : [],
   };
@@ -518,8 +521,11 @@ function getCurrentEvents() {
   return getCurrentLevel().events || CONFIG.events || [];
 }
 
-function getTotalItemsCount() {
-  return (CONFIG.levels || [getCurrentLevel()]).reduce((sum, level) => sum + (level.items?.length || 0), 0);
+function getTotalCollectiblesCount() {
+  return (CONFIG.levels || [getCurrentLevel()]).reduce(
+    (sum, level) => sum + (level.items?.length || 0) + (level.coins?.length || 0),
+    0,
+  );
 }
 
 function setBackgroundForCurrentLevel() {
@@ -648,6 +654,7 @@ function loadLevelItem(item, index) {
   image.src = item.src;
   return {
     id: item.id || `item-${index}`,
+    type: "item",
     x: item.x,
     y: item.y,
     w: item.w ?? 34,
@@ -662,12 +669,27 @@ function loadLevelItem(item, index) {
   };
 }
 
+function loadLevelCoin(coin, index) {
+  return {
+    id: coin.id || `coin-${index}`,
+    type: "coin",
+    x: coin.x,
+    y: coin.y,
+    w: coin.w ?? DEFAULT_COIN_SIZE.w,
+    h: coin.h ?? DEFAULT_COIN_SIZE.h,
+    title: coin.title || "Монетка!",
+    text: coin.text || "Ты собрал монетку.",
+    collected: false,
+  };
+}
 
 function createCoins() {
   syncAutoLevelItems();
   const level = getCurrentLevel();
-  totalCoins = level.items.length;
-  return level.items.map(loadLevelItem);
+  const items = level.items.map(loadLevelItem);
+  const coins = (level.coins || []).map(loadLevelCoin);
+  totalCoins = getTotalCollectiblesCount();
+  return [...items, ...coins];
 }
 
 function resetGame() {
@@ -805,6 +827,8 @@ function collectCoins(player) {
     spawnSparkles(item.x + item.w / 2, item.y + item.h / 2);
     showEventCard({ title: item.title, text: item.text });
     eventCardTimer = 4.5;
+
+    if (item.type === "coin") eventCardTimer = Math.min(eventCardTimer, 1.2);
 
     if (item.nextLevel) {
       showEventCard({ title: item.title, text: item.transitionText || item.text });
@@ -1043,6 +1067,11 @@ function drawCoins() {
     if (x + item.w < -60 || x > VIEW.width + 60) return;
     const bob = Math.sin(t * 4 + item.x * 0.03) * 4;
 
+    if (item.type === "coin") {
+      drawCoinSprite(x, item.y + bob, item.w, item.h);
+      return;
+    }
+
     if (item.image.complete && item.image.naturalWidth > 0) {
       ctx.drawImage(item.image, x, item.y + bob, item.w, item.h);
       return;
@@ -1051,6 +1080,20 @@ function drawCoins() {
     pixelRect(x, item.y + bob, item.w, item.h, PALETTE.gold);
     pixelRect(x + 6, item.y + bob + 6, item.w - 12, item.h - 12, PALETTE.goldDark);
   });
+}
+
+function drawCoinSprite(x, y, w, h) {
+  ctx.save();
+  ctx.fillStyle = PALETTE.goldDark;
+  ctx.beginPath();
+  ctx.ellipse(snap(x + w / 2), snap(y + h / 2), snap(w / 2), snap(h / 2), 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = PALETTE.gold;
+  ctx.beginPath();
+  ctx.ellipse(snap(x + w / 2), snap(y + h / 2), snap(w / 2 - 3), snap(h / 2 - 3), 0, 0, Math.PI * 2);
+  ctx.fill();
+  pixelRect(x + w * 0.42, y + 4, Math.max(3, w * 0.16), h - 8, "#fde68a");
+  ctx.restore();
 }
 
 function drawCostumeCheckpoints() {
@@ -1400,6 +1443,7 @@ function pixelHill(cx, baseY, width, height, color, shadow) {
 function ensureLevelCollections(level = getCurrentLevel()) {
   if (!Array.isArray(level.blocks)) level.blocks = [];
   if (!Array.isArray(level.items)) level.items = [];
+  if (!Array.isArray(level.coins)) level.coins = [];
   if (!Array.isArray(level.costumeCheckpoints)) level.costumeCheckpoints = [];
 }
 
@@ -1425,6 +1469,7 @@ function loadSavedLevel() {
       const level = getCurrentLevel();
       if (Array.isArray(saved.blocks)) level.blocks = saved.blocks;
       if (Array.isArray(saved.items)) level.items = saved.items;
+      if (Array.isArray(saved.coins)) level.coins = saved.coins;
       if (Array.isArray(saved.costumeCheckpoints)) level.costumeCheckpoints = saved.costumeCheckpoints;
     }
     ensureLevelCollections();
@@ -1457,7 +1502,7 @@ function exportLevel() {
 
 function updateEditorStatus() {
   if (!editorStatus) return;
-  editorStatus.textContent = `Блоков: ${getCurrentLevel().blocks.length}. Предметов: ${getCurrentLevel().items.length}. Чекпоинтов костюма: ${getCurrentLevel().costumeCheckpoints.length}.`;
+  editorStatus.textContent = `Блоков: ${getCurrentLevel().blocks.length}. Предметов: ${getCurrentLevel().items.length}. Монеток: ${(getCurrentLevel().coins || []).length}. Чекпоинтов костюма: ${getCurrentLevel().costumeCheckpoints.length}.`;
 }
 
 function toggleEditorMode() {
@@ -1494,6 +1539,17 @@ function createEditorItem(x, y) {
   };
 }
 
+function createEditorCoin(x, y) {
+  return {
+    x,
+    y,
+    w: DEFAULT_COIN_SIZE.w,
+    h: DEFAULT_COIN_SIZE.h,
+    title: "Монетка!",
+    text: "Ты собрал монетку.",
+  };
+}
+
 function createEditorCostumeCheckpoint(x) {
   return {
     x,
@@ -1510,7 +1566,11 @@ function removeNearestLevelObject(worldX, worldY, tool) {
     return index >= 0;
   }
 
-  const collection = tool === "item" ? getCurrentLevel().items : getCurrentLevel().blocks;
+  const collection = tool === "item"
+    ? getCurrentLevel().items
+    : tool === "coin"
+      ? getCurrentLevel().coins
+      : getCurrentLevel().blocks;
   const index = collection.findIndex((object) => rectsOverlap({ x: worldX, y: worldY, w: 1, h: 1 }, object));
   if (index >= 0) collection.splice(index, 1);
   return index >= 0;
@@ -1530,6 +1590,8 @@ function handleEditorPointer(event) {
     if (!removeNearestLevelObject(worldX, worldY, tool)) return;
   } else if (tool === "item") {
     getCurrentLevel().items.push(createEditorItem(worldX, worldY));
+  } else if (tool === "coin") {
+    getCurrentLevel().coins.push(createEditorCoin(worldX, worldY));
   } else if (tool === "costume") {
     getCurrentLevel().costumeCheckpoints.push(createEditorCostumeCheckpoint(worldX));
   } else {
