@@ -64,7 +64,11 @@ const LEVEL_DIRECTORY = "assets/levels";
 const LEVEL_MANIFEST = `${LEVEL_DIRECTORY}/manifest.json`;
 const LEVEL_TRANSITION_DURATION = 1.4;
 const GRID_SIZE = 16;
-const DEFAULT_BLOCK_SIZE = { w: 96, h: 18 };
+const BLOCK_TILE_SRC = "assets/background/блок.svg";
+const GROUND_BLOCK_TILE_SIZE = 40;
+const AIR_BLOCK_TILE_SIZE = 20;
+const DEFAULT_BLOCK_SIZE = { w: 48, h: AIR_BLOCK_TILE_SIZE };
+const AIR_BLOCK_SCALE = 0.5;
 const DEFAULT_ITEM_SIZE = { w: 34, h: 34 };
 const DEFAULT_COIN_SIZE = { w: 22, h: 22 };
 const ATTRIBUTE_DIRECTORY = "assets/attributes";
@@ -88,6 +92,8 @@ const PLAYER_POSES = ["idle", "jump", "run1", "run2", "run3"];
 const DEFAULT_PLAYER_COSTUME = "young";
 const COSTUME_CHECKPOINT_HIT_WIDTH = GRID_SIZE * 2;
 const backgroundImage = new Image();
+const blockImage = new Image();
+blockImage.src = BLOCK_TILE_SRC;
 let attributeAssets = ATTRIBUTE_FALLBACK_FILES.map(createAttributeAsset);
 let costumeAssets = [createCostumeAsset(DEFAULT_PLAYER_COSTUME)];
 
@@ -644,9 +650,25 @@ function createPlayer() {
 
 function createPlatforms() {
   return [
-    { x: 0, y: FLOOR_Y, w: getCurrentWorldWidth(), h: 16, type: "ground" },
-    ...getCurrentLevel().blocks.map((block) => ({ ...block, type: "block" })),
+    { x: 0, y: FLOOR_Y, w: getCurrentWorldWidth(), h: GROUND_BLOCK_TILE_SIZE, type: "ground" },
+    ...getCurrentLevel().blocks.map((block) => createAirBlockPlatform(block)),
   ];
+}
+
+function createAirBlockPlatform(block) {
+  const sourceW = block.w ?? DEFAULT_BLOCK_SIZE.w / AIR_BLOCK_SCALE;
+  const sourceH = block.h ?? DEFAULT_BLOCK_SIZE.h / AIR_BLOCK_SCALE;
+  const w = Math.max(24, Math.round(sourceW * AIR_BLOCK_SCALE));
+  const h = Math.max(AIR_BLOCK_TILE_SIZE, Math.round(sourceH * AIR_BLOCK_SCALE));
+
+  return {
+    ...block,
+    x: Math.round(block.x + (sourceW - w) / 2),
+    y: Math.round(block.y + sourceH - h),
+    w,
+    h,
+    type: "block",
+  };
 }
 
 function loadLevelItem(item, index) {
@@ -1049,14 +1071,39 @@ function drawPlatforms() {
     if (x + p.w < -50 || x > VIEW.width + 50) return;
 
     if (p.type === "ground") {
-      pixelRect(x, p.y, p.w, p.h, PALETTE.dirt);
-      pixelRect(x, p.y, p.w, 4, PALETTE.grass);
+      drawGroundPlatform(x, p.y, p.w, p.h);
     } else {
-      pixelRect(x, p.y, p.w, p.h, PALETTE.wood);
-      pixelRect(x, p.y - 8, p.w, 12, "#f59e0b");
-      for (let i = 16; i < p.w; i += 48) pixelRect(x + i, p.y + 10, 24, 5, "#92400e");
+      drawAirBlock(x, p.y, p.w, p.h);
     }
   });
+}
+
+function drawGroundPlatform(x, y, w, h) {
+  drawBlockTileSurface(x, y, w, h, GROUND_BLOCK_TILE_SIZE);
+}
+
+function drawAirBlock(x, y, w, h) {
+  drawBlockTileSurface(x, y, w, h, AIR_BLOCK_TILE_SIZE);
+}
+
+function drawBlockTileSurface(x, y, w, h, tileSize) {
+  if (!blockImage.complete || blockImage.naturalWidth <= 0) {
+    pixelRect(x, y, w, h, PALETTE.wood);
+    return;
+  }
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+
+  for (let tileX = x; tileX < x + w; tileX += tileSize) {
+    for (let tileY = y; tileY < y + h; tileY += tileSize) {
+      ctx.drawImage(blockImage, tileX, tileY, tileSize, tileSize);
+    }
+  }
+
+  ctx.restore();
 }
 
 function drawCoins() {
