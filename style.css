@@ -18,6 +18,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  width: 100%;
   font-family: "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--ink);
   background:
@@ -25,8 +26,10 @@ body {
     linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
     linear-gradient(180deg, #1e3a8a 0 34%, #155e75 34% 62%, #111827 62% 100%);
   background-size: 8px 8px, 8px 8px, auto;
-  overflow: hidden;
+  overflow-x: hidden;
 }
+
+html { overflow-x: hidden; }
 
 button { font: inherit; }
 
@@ -34,7 +37,7 @@ button { font: inherit; }
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: 0;
 }
 
 .hero,
@@ -154,7 +157,7 @@ h2 { font-size: clamp(32px, 5vw, 56px); }
 
 .game-shell {
   position: relative;
-  width: min(1280px, 100%);
+  width: 100%;
 }
 
 .editor-toggle {
@@ -245,6 +248,12 @@ h2 { font-size: clamp(32px, 5vw, 56px); }
   color: #bfdbfe;
 }
 
+.photo-placeholder {
+  width: 100%;
+  aspect-ratio: 1280 / 680;
+  background: #fff;
+}
+
 .canvas-wrap {
   position: relative;
   width: 100%;
@@ -324,7 +333,7 @@ h2 { font-size: clamp(32px, 5vw, 56px); }
 
 @media (max-width: 760px) {
   body { overflow: auto; }
-  .page { padding: 14px; align-items: start; }
+  .page { padding: 0; align-items: start; }
   .editor-toggle { top: 8px; right: 8px; padding: 8px 10px; font-size: 12px; }
   .topbar { align-items: stretch; grid-template-columns: 1fr 1fr; gap: 10px; }
   .game-shell--editor-open .topbar { display: grid; }
