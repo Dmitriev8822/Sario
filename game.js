@@ -850,10 +850,11 @@ function collectCoins(player) {
     player.coins += 1;
     state.totalCoinsCollected += 1;
     spawnSparkles(item.x + item.w / 2, item.y + item.h / 2);
-    showEventCard({ title: item.title, text: item.text });
-    eventCardTimer = 4.5;
 
-    if (item.type === "coin") eventCardTimer = Math.min(eventCardTimer, 1.2);
+    if (item.type !== "coin") {
+      showEventCard({ title: item.title, text: item.text });
+      eventCardTimer = 4.5;
+    }
 
     if (item.nextLevel) {
       showEventCard({ title: item.title, text: item.transitionText || item.text });
