@@ -66,9 +66,9 @@ const LEVEL_TRANSITION_DURATION = 1.4;
 const GRID_SIZE = 16;
 const BLOCK_TILE_SRC = "assets/background/блок.svg";
 const GROUND_BLOCK_TILE_SIZE = 40;
-const AIR_BLOCK_TILE_SIZE = 20;
-const DEFAULT_BLOCK_SIZE = { w: 48, h: AIR_BLOCK_TILE_SIZE };
-const AIR_BLOCK_SCALE = 0.5;
+const AIR_BLOCK_TILE_SIZE = GROUND_BLOCK_TILE_SIZE;
+const DEFAULT_BLOCK_SIZE = { w: GROUND_BLOCK_TILE_SIZE * 2, h: AIR_BLOCK_TILE_SIZE };
+const AIR_BLOCK_SCALE = 1;
 const DEFAULT_ITEM_SIZE = { w: 34, h: 34 };
 const DEFAULT_COIN_SIZE = { w: 22, h: 22 };
 const ATTRIBUTE_DIRECTORY = "assets/attributes";
@@ -1070,11 +1070,9 @@ function drawPlatforms() {
     const x = p.x - cameraX;
     if (x + p.w < -50 || x > VIEW.width + 50) return;
 
-    if (p.type === "ground") {
-      drawGroundPlatform(x, p.y, p.w, p.h);
-    } else {
-      drawAirBlock(x, p.y, p.w, p.h);
-    }
+    if (p.type === "ground") return;
+
+    drawAirBlock(x, p.y, p.w, p.h);
   });
 }
 
