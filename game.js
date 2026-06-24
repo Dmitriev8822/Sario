@@ -433,6 +433,7 @@ function isSpriteReady(sprite) {
 
 const gameShell = document.getElementById("gameShell");
 const gameTopbar = document.getElementById("gameTopbar");
+const photoPlaceholder = document.querySelector(".photo-placeholder");
 const finishScreen = document.getElementById("finishScreen");
 const restartButton = document.getElementById("restartButton");
 const editorToggleButton = document.getElementById("editorToggleButton");
@@ -611,6 +612,7 @@ function switchToLevel(levelId) {
   state.triggeredCostumeCheckpoints = new Set();
   state.particles = [];
   cameraX = 0;
+  syncPhotoBackgroundWithCamera();
   activeEventIndex = -1;
   eventCardTimer = 0;
   hideEventCard();
@@ -734,6 +736,7 @@ function resetGame() {
   state.transition = { active: false, elapsed: 0, targetLevelId: null, switched: false };
   state.startedAt = performance.now();
   cameraX = 0;
+  syncPhotoBackgroundWithCamera();
   lastTime = 0;
   activeEventIndex = -1;
   eventCardTimer = 0;
@@ -881,10 +884,18 @@ function updateCostumeCheckpoints() {
   });
 }
 
+function syncPhotoBackgroundWithCamera() {
+  if (!photoPlaceholder) return;
+  const maxCameraX = Math.max(1, getCurrentWorldWidth() - VIEW.width);
+  const scrollProgress = clamp(cameraX / maxCameraX, 0, 1);
+  photoPlaceholder.style.setProperty("--photo-bg-position", `${scrollProgress * 100}%`);
+}
+
 function updateCamera() {
   const target = state.player.x - VIEW.width * 0.42;
   cameraX += (target - cameraX) * 0.12;
   cameraX = clamp(cameraX, 0, getCurrentWorldWidth() - VIEW.width);
+  syncPhotoBackgroundWithCamera();
 }
 
 function updateEvents(dt) {

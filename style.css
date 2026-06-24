@@ -253,7 +253,12 @@ h2 { font-size: clamp(32px, 5vw, 56px); }
 .photo-placeholder {
   width: 100%;
   aspect-ratio: 1280 / 680;
-  background: #fff;
+  background-color: #fff;
+  background-image: url("assets/background/1_up.png");
+  background-position: var(--photo-bg-position, 0%) center;
+  background-repeat: no-repeat;
+  background-size: auto 100%;
+  image-rendering: auto;
 }
 
 .canvas-wrap {
