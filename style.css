@@ -27,19 +27,21 @@ body {
     linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
     linear-gradient(180deg, #1e3a8a 0 34%, #155e75 34% 62%, #111827 62% 100%);
   background-size: 8px 8px, 8px 8px, auto;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
-html { overflow: hidden; }
+html {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
 
 button { font: inherit; }
 
 .page {
-  height: 100vh;
-  height: 100svh;
   min-height: 100vh;
   min-height: 100svh;
-  overflow: hidden;
+  overflow: visible;
   display: grid;
   place-items: center;
   padding: 0;
