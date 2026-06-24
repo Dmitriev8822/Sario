@@ -158,8 +158,10 @@ h2 { font-size: clamp(32px, 5vw, 56px); }
 
 .game-shell {
   position: relative;
-  width: min(100vw, calc(100vh * 1280 / 1020));
-  width: min(100vw, calc(100svh * 1280 / 1020));
+  --game-overflow-x: 6px;
+  --game-overflow-y: 14px;
+  width: min(calc(100vw - var(--game-overflow-x)), calc((100vh - var(--game-overflow-y)) * 1280 / 1020));
+  width: min(calc(100vw - var(--game-overflow-x)), calc((100svh - var(--game-overflow-y)) * 1280 / 1020));
 }
 
 .editor-toggle {
