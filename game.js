@@ -1156,7 +1156,10 @@ function drawPlatforms() {
     const x = p.x - cameraX;
     if (x + p.w < -50 || x > VIEW.width + 50) return;
 
-    if (p.type === "ground") return;
+    if (p.type === "ground") {
+      drawGroundPlatform(x, p.y, p.w, p.h);
+      return;
+    }
 
     drawAirBlock(x, p.y, p.w, p.h);
   });
