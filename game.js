@@ -439,6 +439,7 @@ const restartButton = document.getElementById("restartButton");
 const editorToggleButton = document.getElementById("editorToggleButton");
 const editorModeButton = document.getElementById("editorModeButton");
 const editorToolSelect = document.getElementById("editorToolSelect");
+const editorLevelSelect = document.getElementById("editorLevelSelect");
 const editorItemSelect = document.getElementById("editorItemSelect");
 const editorCostumeSelect = document.getElementById("editorCostumeSelect");
 const editorExportButton = document.getElementById("editorExportButton");
@@ -529,6 +530,33 @@ function getCurrentWorldWidth() {
   return getCurrentLevel().worldWidth || CONFIG.worldWidth;
 }
 
+function updateEditorLevelSelect() {
+  if (!editorLevelSelect) return;
+
+  const levels = CONFIG.levels || [getCurrentLevel()];
+  editorLevelSelect.replaceChildren();
+
+  levels.forEach((level, index) => {
+    const option = document.createElement("option");
+    option.value = level.id || `level-${index + 1}`;
+    option.textContent = level.title || `Локация ${index + 1}`;
+    editorLevelSelect.append(option);
+  });
+
+  editorLevelSelect.value = getCurrentLevel().id || levels[currentLevelIndex]?.id || "";
+}
+
+function selectEditorLevel(levelId) {
+  if (!levelId || levelId === getCurrentLevel().id) {
+    updateEditorLevelSelect();
+    return;
+  }
+
+  state.transition = { active: false, elapsed: 0, targetLevelId: null, switched: false };
+  switchToLevel(levelId);
+  updateEditorLevelSelect();
+}
+
 function getCurrentEvents() {
   return getCurrentLevel().events || CONFIG.events || [];
 }
@@ -573,6 +601,7 @@ async function refreshLevels() {
       CONFIG.levels = loadedLevels.map(normalizeLevel);
       defaultLevels = cloneData(CONFIG.levels);
       currentLevelIndex = 0;
+      updateEditorLevelSelect();
       setBackgroundForCurrentLevel();
       resetGame();
     }
@@ -598,6 +627,7 @@ function switchToLevel(levelId) {
   if (index < 0) return false;
 
   currentLevelIndex = index;
+  updateEditorLevelSelect();
   setBackgroundForCurrentLevel();
   const start = getCurrentLevel().start || { x: 80, y: FLOOR_Y - 52 };
   state.player.x = start.x;
@@ -747,6 +777,7 @@ function resetGame() {
 
 function startGame() {
   currentLevelIndex = 0;
+  updateEditorLevelSelect();
   resetGame();
   finishScreen.hidden = true;
   gameShell.hidden = false;
@@ -1527,6 +1558,7 @@ function loadSavedLevel() {
     if (Array.isArray(savedLevels)) {
       CONFIG.levels = savedLevels.map(normalizeLevel);
       currentLevelIndex = Math.min(currentLevelIndex, CONFIG.levels.length - 1);
+      updateEditorLevelSelect();
     } else {
       const level = getCurrentLevel();
       if (Array.isArray(saved.blocks)) level.blocks = saved.blocks;
@@ -1548,6 +1580,7 @@ function saveLevel() {
 function resetCustomLevel() {
   CONFIG.levels = cloneData(defaultLevels);
   currentLevelIndex = 0;
+  updateEditorLevelSelect();
   setBackgroundForCurrentLevel();
   localStorage.removeItem(LEVEL_STORAGE_KEY);
   state.platforms = createPlatforms();
@@ -1728,6 +1761,7 @@ restartButton.addEventListener("click", startGame);
 playAgainButton.addEventListener("click", startGame);
 editorToggleButton.addEventListener("click", toggleEditorMode);
 editorModeButton.addEventListener("click", toggleEditorMode);
+editorLevelSelect.addEventListener("change", () => selectEditorLevel(editorLevelSelect.value));
 editorExportButton.addEventListener("click", exportLevel);
 editorResetButton.addEventListener("click", resetCustomLevel);
 canvas.addEventListener("pointerdown", handleEditorPointer);
@@ -1741,6 +1775,7 @@ async function initializeGame() {
   setBackgroundForCurrentLevel();
   updateEditorItemSelect();
   updateEditorCostumeSelect();
+  updateEditorLevelSelect();
   updateEditorUi();
   bindMobileControls();
   await Promise.all([refreshAttributeAssets(), refreshCostumeAssets()]);
