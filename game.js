@@ -63,6 +63,7 @@ const LEVEL_STORAGE_KEY = "sario.levels";
 const LEVEL_DIRECTORY = "assets/levels";
 const LEVEL_MANIFEST = `${LEVEL_DIRECTORY}/manifest.json`;
 const LEVEL_TRANSITION_DURATION = 1.4;
+const LEVEL_FINISH_COOLDOWN = 0.7;
 const GRID_SIZE = 16;
 const BLOCK_TILE_VERSION = "2026-06-23";
 const BLOCK_TILE_SRC = `assets/background/блок.svg?v=${BLOCK_TILE_VERSION}`;
@@ -497,7 +498,7 @@ const state = {
   finished: false,
   startedAt: 0,
   totalCoinsCollected: 0,
-  transition: { active: false, elapsed: 0, targetLevelId: null, switched: false },
+  transition: { active: false, elapsed: 0, targetLevelId: null, switched: false, title: "", text: "" },
 };
 
 
@@ -519,6 +520,9 @@ function normalizeLevel(level, index = 0) {
     coins: Array.isArray(level.coins) ? level.coins : cloneData(fallback.coins || []),
     costumeCheckpoints: Array.isArray(level.costumeCheckpoints) ? level.costumeCheckpoints : [],
     events: Array.isArray(level.events) ? level.events : [],
+    nextLevel: level.nextLevel,
+    transitionTitle: level.transitionTitle || "Новая локация",
+    transitionText: level.transitionText || "Путь продолжается.",
   };
 }
 
@@ -552,7 +556,7 @@ function selectEditorLevel(levelId) {
     return;
   }
 
-  state.transition = { active: false, elapsed: 0, targetLevelId: null, switched: false };
+  state.transition = { active: false, elapsed: 0, targetLevelId: null, switched: false, title: "", text: "" };
   switchToLevel(levelId);
   updateEditorLevelSelect();
 }
@@ -614,9 +618,14 @@ function findLevelIndex(levelId) {
   return CONFIG.levels?.findIndex((level) => level.id === levelId) ?? -1;
 }
 
-function startLevelTransition(targetLevelId) {
+function getNextLevelId(level = getCurrentLevel()) {
+  if (level.nextLevel) return level.nextLevel;
+  return CONFIG.levels?.[currentLevelIndex + 1]?.id || null;
+}
+
+function startLevelTransition(targetLevelId, title = "Новая локация", text = "Путь продолжается.") {
   if (state.transition.active) return;
-  state.transition = { active: true, elapsed: 0, targetLevelId, switched: false };
+  state.transition = { active: true, elapsed: 0, targetLevelId, switched: false, title, text };
   keys.left = false;
   keys.right = false;
   keys.jump = false;
@@ -661,7 +670,7 @@ function updateLevelTransition(dt) {
   }
 
   if (state.transition.elapsed >= LEVEL_TRANSITION_DURATION) {
-    state.transition = { active: false, elapsed: 0, targetLevelId: null, switched: false };
+    state.transition = { active: false, elapsed: 0, targetLevelId: null, switched: false, title: "", text: "" };
   }
 }
 
@@ -763,7 +772,7 @@ function resetGame() {
   state.particles = [];
   state.finished = false;
   state.totalCoinsCollected = 0;
-  state.transition = { active: false, elapsed: 0, targetLevelId: null, switched: false };
+  state.transition = { active: false, elapsed: 0, targetLevelId: null, switched: false, title: "", text: "" };
   state.startedAt = performance.now();
   cameraX = 0;
   syncPhotoBackgroundWithCamera();
@@ -834,8 +843,40 @@ function update(dt) {
   updateEvents(dt);
   updateParticles(dt);
   updateHud();
+  updateLevelFinish();
 
   if (player.y > VIEW.height + 240) respawn();
+}
+
+function updateLevelFinish() {
+  if (state.finished || state.transition.active) return;
+
+  const level = getCurrentLevel();
+  const finishX = getCurrentWorldWidth() - (level.finishDistance ?? 240);
+  if (state.player.x + state.player.w < finishX) return;
+
+  const targetLevelId = getNextLevelId(level);
+  if (targetLevelId) {
+    showEventCard({ title: level.transitionTitle, text: level.transitionText });
+    eventCardTimer = LEVEL_FINISH_COOLDOWN + LEVEL_TRANSITION_DURATION;
+    startLevelTransition(targetLevelId, level.transitionTitle, level.transitionText);
+    return;
+  }
+
+  finishGame();
+}
+
+function finishGame() {
+  state.finished = true;
+  running = false;
+  cancelAnimationFrame(rafId);
+
+  const elapsedSeconds = Math.max(1, Math.round((performance.now() - state.startedAt) / 1000));
+  finishTitle.textContent = CONFIG.finalTitle;
+  finishText.textContent = CONFIG.finalText;
+  finishStats.textContent = `Собрано: ${state.totalCoinsCollected} / ${totalCoins}. Время: ${elapsedSeconds} сек.`;
+  gameShell.hidden = true;
+  finishScreen.hidden = false;
 }
 
 function movePlayer(player, dt) {
@@ -892,10 +933,7 @@ function collectCoins(player) {
       eventCardTimer = 4.5;
     }
 
-    if (item.nextLevel) {
-      showEventCard({ title: item.title, text: item.transitionText || item.text });
-      startLevelTransition(item.nextLevel);
-    }
+    if (item.nextLevel) startLevelTransition(item.nextLevel, item.title, item.transitionText || item.text);
   }
 }
 
@@ -1027,9 +1065,9 @@ function drawLevelTransition() {
   ctx.fillStyle = "#ffffff";
   ctx.font = "900 28px Courier New, monospace";
   ctx.textAlign = "center";
-  ctx.fillText("Новая локация", VIEW.width / 2, VIEW.height / 2 - 8);
+  ctx.fillText(state.transition.title || "Новая локация", VIEW.width / 2, VIEW.height / 2 - 8);
   ctx.font = "700 16px Courier New, monospace";
-  ctx.fillText("путь продолжается", VIEW.width / 2, VIEW.height / 2 + 24);
+  ctx.fillText(state.transition.text || "путь продолжается", VIEW.width / 2, VIEW.height / 2 + 24);
   ctx.restore();
 }
 
