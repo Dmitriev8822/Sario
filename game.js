@@ -1638,10 +1638,31 @@ function resetCustomLevel() {
   updateEditorStatus();
 }
 
+function downloadJson(filename, data) {
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function exportLevel() {
-  const json = JSON.stringify(CONFIG.levels || [getCurrentLevel()], null, 2);
+  const exportData = {
+    levels: CONFIG.levels || [getCurrentLevel()],
+  };
+  const json = JSON.stringify(exportData, null, 2);
+
+  downloadJson("manifest.json", json);
   navigator.clipboard?.writeText(json).catch(() => undefined);
-  window.prompt("Скопируй JSON уровней и сохрани его в assets/levels/*.json:", json);
+  window.prompt(
+    "Скачанный manifest.json положи с заменой в assets/levels/manifest.json. JSON также скопирован сюда:",
+    json,
+  );
 }
 
 function updateEditorStatus() {
