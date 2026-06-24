@@ -350,7 +350,6 @@ h2 { font-size: clamp(32px, 5vw, 56px); }
 [hidden] { display: none !important; }
 
 @media (max-width: 760px) {
-  body { overflow: hidden; }
   .page { padding: 0; align-items: start; }
   .editor-toggle { top: 8px; right: 8px; padding: 8px 10px; font-size: 12px; }
   .topbar { align-items: stretch; grid-template-columns: 1fr 1fr; gap: 10px; }
