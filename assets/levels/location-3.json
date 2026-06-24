@@ -2,7 +2,7 @@
   "id": "location-3",
   "title": "Локация 3",
   "background": "assets/background/3.png",
-  "upperBackground": "assets/background/3.png",
+  "upperBackground": "assets/background/3_up.png",
   "worldWidth": 6623,
   "start": {
     "x": 80,
