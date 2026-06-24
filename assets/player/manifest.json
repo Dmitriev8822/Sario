@@ -9,6 +9,16 @@
       "id": "army",
       "title": "Army",
       "path": "assets/player/army"
+    },
+    {
+      "id": "school",
+      "title": "school",
+      "path": "assets/player/school"
+    },
+    {
+      "id": "moscow",
+      "title": "moscow",
+      "path": "assets/player/moscow"
     }
   ]
 }
