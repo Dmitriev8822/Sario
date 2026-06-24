@@ -39,6 +39,7 @@ python3 -m http.server 8080
   "id": "location-1",
   "title": "Первая локация",
   "background": "assets/background/1.png",
+  "upperBackground": "assets/background/1_up.png",
   "worldWidth": 6623,
   "start": { "x": 80, "y": 272 },
   "blocks": [
@@ -67,6 +68,7 @@ python3 -m http.server 8080
 ```
 
 - `background` — фон конкретной локации из `assets/background/`.
+- `upperBackground` — необязательный верхний фон над игровым canvas; если поле не задано, используется обычный `background`.
 - `worldWidth` — ширина мира для камеры и пола. Автоматического финиша по координате больше нет: переход между уровнями запускают только предметы с `nextLevel`.
 - `worldWidth` — ширина мира для камеры, пола и финишной зоны.
 - `start` — стартовая позиция игрока при входе на уровень.

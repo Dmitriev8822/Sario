@@ -1,7 +1,8 @@
 {
   "id": "location-1",
-  "title": "Первая локация",
+  "title": "Локация 1",
   "background": "assets/background/1.png",
+  "upperBackground": "assets/background/1_up.png",
   "worldWidth": 6623,
   "start": {
     "x": 80,
