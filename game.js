@@ -512,6 +512,7 @@ function normalizeLevel(level, index = 0) {
     id: level.id || `level-${index + 1}`,
     title: level.title || `Локация ${index + 1}`,
     background: level.background || "assets/background/1.png",
+    upperBackground: level.upperBackground || level.topBackground || level.headerBackground || "",
     worldWidth: level.worldWidth || CONFIG.worldWidth,
     start: { x: 80, y: FLOOR_Y - 52, ...(level.start || {}) },
     finishDistance: level.finishDistance ?? 240,
@@ -573,9 +574,16 @@ function getTotalCollectiblesCount() {
 }
 
 function setBackgroundForCurrentLevel() {
-  const nextSrc = getCurrentLevel().background || "assets/background/1.png";
-  if (backgroundImage.src.endsWith(nextSrc)) return;
-  backgroundImage.src = nextSrc;
+  const level = getCurrentLevel();
+  const nextSrc = level.background || "assets/background/1.png";
+  if (!backgroundImage.src.endsWith(nextSrc)) {
+    backgroundImage.src = nextSrc;
+  }
+
+  if (photoPlaceholder) {
+    const upperBackground = level.upperBackground || nextSrc;
+    photoPlaceholder.style.backgroundImage = `url("${upperBackground}")`;
+  }
 }
 
 async function fetchLevelManifest() {
