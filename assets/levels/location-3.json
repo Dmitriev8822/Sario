@@ -218,5 +218,8 @@
       "w": 22,
       "h": 22
     }
-  ]
+  ],
+  "nextLevel": "location-4",
+  "transitionTitle": "Новая локация",
+  "transitionText": "Локация 3 пройдена. Переходим дальше!"
 }

@@ -145,9 +145,7 @@
       "h": 42,
       "src": "assets/attributes/Military ticket.png",
       "title": "Военный билет",
-      "text": "Ты получил военный билет — впереди новая локация.",
-      "transitionText": "Документ на руках. Открывается следующий этап пути!",
-      "nextLevel": "location-2"
+      "text": "Ты получил военный билет — впереди новая локация."
     }
   ],
   "costumeCheckpoints": [],
@@ -237,5 +235,8 @@
       "w": 22,
       "h": 22
     }
-  ]
+  ],
+  "nextLevel": "location-2",
+  "transitionTitle": "Новая локация",
+  "transitionText": "Локация 1 пройдена. Переходим дальше!"
 }
