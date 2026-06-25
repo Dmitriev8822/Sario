@@ -8,9 +8,9 @@
     "y": 272
   },
   "finishDistance": 240,
-  "nextLevel": "location-9",
-  "transitionTitle": "Новая локация",
-  "transitionText": "Локация 8 пройдена. Переходим дальше!",
+  "nextLevel": null,
+  "transitionTitle": "Финиш",
+  "transitionText": "С днем рождения, Саша!",
   "blocks": [
     {
       "x": 300,
