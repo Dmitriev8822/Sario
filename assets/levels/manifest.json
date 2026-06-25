@@ -1292,7 +1292,7 @@
       "id": "location-6",
       "title": "Локация 6",
       "background": "assets/background/6.png",
-      "upperBackground": "",
+      "upperBackground": "assets/background/6_up.png",
       "worldWidth": 6623,
       "start": {
         "x": 80,
