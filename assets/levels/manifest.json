@@ -1838,7 +1838,7 @@
       "id": "location-8",
       "title": "Локация 8",
       "background": "assets/background/8.png",
-      "upperBackground": "",
+      "upperBackground": "assets/background/8_up.png",
       "worldWidth": 6623,
       "start": {
         "x": 80,

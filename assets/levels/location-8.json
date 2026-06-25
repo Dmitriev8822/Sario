@@ -221,5 +221,6 @@
       "w": 22,
       "h": 22
     }
-  ]
+  ],
+  "upperBackground": "assets/background/8_up.png"
 }
