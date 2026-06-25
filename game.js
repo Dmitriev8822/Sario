@@ -83,6 +83,7 @@ const ATTRIBUTE_FALLBACK_FILES = [
     file: "Laptop.png",
     title: "Рабочая станция",
     text: "Ты открыл ачивку «Рабочая станция» — ноутбук всегда под рукой!",
+    autoPlace: false,
   },
   {
     file: "Military ticket.png",
@@ -351,9 +352,7 @@ function buildAutoLevelItem(asset, index, total) {
 
 function syncAutoLevelItems() {
   const manualItems = getCurrentLevel().items.filter((item) => !item.auto);
-  const autoPlaceAssets = attributeAssets.filter((asset) => asset.autoPlace !== false);
-  const autoItems = autoPlaceAssets.map((asset, index) => buildAutoLevelItem(asset, index, autoPlaceAssets.length));
-  getCurrentLevel().items = [...manualItems, ...autoItems];
+  getCurrentLevel().items = manualItems;
 }
 
 function findSelectedAttributeAsset() {

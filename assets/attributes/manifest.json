@@ -3,7 +3,8 @@
     {
       "file": "Laptop.png",
       "title": "Рабочая станция",
-      "text": "Ты открыл ачивку «Рабочая станция» — ноутбук всегда под рукой!"
+      "text": "Ты открыл ачивку «Рабочая станция» — ноутбук всегда под рукой!",
+      "autoPlace": false
     },
     {
       "file": "Military ticket.png",
@@ -14,7 +15,8 @@
     {
       "file": "RX-8 tu tu tu tu.png",
       "title": "RX-8 tu tu tu tu",
-      "text": "ААААА САНЯ НА RX-8 РА ТА ТА ТА ТА"
+      "text": "ААААА САНЯ НА RX-8 РА ТА ТА ТА ТА",
+      "autoPlace": false
     },
     {
       "file": "plane.png",
