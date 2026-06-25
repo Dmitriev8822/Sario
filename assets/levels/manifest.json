@@ -274,7 +274,7 @@
       "id": "location-2",
       "title": "Локация 2",
       "background": "assets/background/2.png",
-      "upperBackground": "",
+      "upperBackground": "assets/background/2_up.png",
       "worldWidth": 6623,
       "start": {
         "x": 80,
@@ -1612,7 +1612,7 @@
       "id": "location-7",
       "title": "Локация 7",
       "background": "assets/background/7.png",
-      "upperBackground": "",
+      "upperBackground": "assets/background/7_up.png",
       "worldWidth": 6623,
       "start": {
         "x": 80,

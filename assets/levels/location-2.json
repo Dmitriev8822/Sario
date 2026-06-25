@@ -232,5 +232,6 @@
   ],
   "nextLevel": "location-3",
   "transitionTitle": "Новая локация",
-  "transitionText": "Локация 2 пройдена. Переходим дальше!"
+  "transitionText": "Локация 2 пройдена. Переходим дальше!",
+  "upperBackground": "assets/background/2_up.png"
 }
