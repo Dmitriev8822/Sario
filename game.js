@@ -1805,8 +1805,8 @@ function updateEditorStatus() {
 function updateEditorUi() {
   gameShell.classList.toggle("game-shell--editor-open", editorMode);
   gameTopbar.setAttribute("aria-hidden", String(!editorMode));
-  editorToggleButton.setAttribute("aria-expanded", String(editorMode));
-  editorToggleButton.textContent = editorMode ? "Скрыть панель" : "Редактор";
+  editorToggleButton?.setAttribute("aria-expanded", String(editorMode));
+  if (editorToggleButton) editorToggleButton.textContent = editorMode ? "Скрыть панель" : "Редактор";
   editorModeButton.textContent = editorMode ? "Играть" : "Редактор";
   editorModeButton.classList.toggle("topbar__button--active", editorMode);
   updateEditorStatus();
@@ -1964,7 +1964,7 @@ playAgainButton.addEventListener("click", startGame);
 soundToggleButton?.addEventListener("click", toggleSound);
 window.addEventListener("pointerdown", unlockAudio, { once: true });
 window.addEventListener("keydown", unlockAudio, { once: true });
-editorToggleButton.addEventListener("click", toggleEditorMode);
+editorToggleButton?.addEventListener("click", toggleEditorMode);
 editorModeButton.addEventListener("click", toggleEditorMode);
 editorLevelSelect.addEventListener("change", () => selectEditorLevel(editorLevelSelect.value));
 editorExportButton.addEventListener("click", exportLevel);
