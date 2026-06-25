@@ -969,7 +969,30 @@
           "h": 18
         }
       ],
-      "items": [],
+      "items": [
+        {
+          "id": "attribute-Laptop.png",
+          "x": 2203,
+          "y": 194,
+          "w": 34,
+          "h": 34,
+          "src": "assets/attributes/Laptop.png",
+          "title": "Рабочая станция",
+          "text": "Ты открыл ачивку «Рабочая станция» — ноутбук всегда под рукой!",
+          "auto": true
+        },
+        {
+          "id": "attribute-RX-8 tu tu tu tu.png",
+          "x": 4482,
+          "y": 220,
+          "w": 34,
+          "h": 34,
+          "src": "assets/attributes/RX-8 tu tu tu tu.png",
+          "title": "RX-8 tu tu tu tu",
+          "text": "ААААА САНЯ НА RX-8 РА ТА ТА ТА ТА",
+          "auto": true
+        }
+      ],
       "coins": [
         {
           "id": "location-4-coin-1",
@@ -1056,7 +1079,32 @@
           "h": 22
         }
       ],
-      "costumeCheckpoints": [],
+      "costumeCheckpoints": [
+        {
+          "x": 96,
+          "costume": "moscow"
+        },
+        {
+          "x": 112,
+          "costume": "moscow"
+        },
+        {
+          "x": 80,
+          "costume": "moscow"
+        },
+        {
+          "x": 64,
+          "costume": "moscow"
+        },
+        {
+          "x": 112,
+          "costume": "moscow"
+        },
+        {
+          "x": 128,
+          "costume": "moscow"
+        }
+      ],
       "events": [],
       "nextLevel": "location-5",
       "transitionTitle": "Новая локация",
@@ -1195,7 +1243,30 @@
           "h": 18
         }
       ],
-      "items": [],
+      "items": [
+        {
+          "id": "attribute-Laptop.png",
+          "x": 2258,
+          "y": 236,
+          "w": 34,
+          "h": 34,
+          "src": "assets/attributes/Laptop.png",
+          "title": "Рабочая станция",
+          "text": "Ты открыл ачивку «Рабочая станция» — ноутбук всегда под рукой!",
+          "auto": true
+        },
+        {
+          "id": "attribute-RX-8 tu tu tu tu.png",
+          "x": 4511,
+          "y": 162,
+          "w": 34,
+          "h": 34,
+          "src": "assets/attributes/RX-8 tu tu tu tu.png",
+          "title": "RX-8 tu tu tu tu",
+          "text": "ААААА САНЯ НА RX-8 РА ТА ТА ТА ТА",
+          "auto": true
+        }
+      ],
       "coins": [
         {
           "id": "location-5-coin-1",
@@ -1292,7 +1363,7 @@
       "id": "location-6",
       "title": "Локация 6",
       "background": "assets/background/6.png",
-      "upperBackground": "",
+      "upperBackground": "assets/background/6_up.png",
       "worldWidth": 6623,
       "start": {
         "x": 80,
@@ -1421,7 +1492,30 @@
           "h": 18
         }
       ],
-      "items": [],
+      "items": [
+        {
+          "id": "attribute-Laptop.png",
+          "x": 2203,
+          "y": 194,
+          "w": 34,
+          "h": 34,
+          "src": "assets/attributes/Laptop.png",
+          "title": "Рабочая станция",
+          "text": "Ты открыл ачивку «Рабочая станция» — ноутбук всегда под рукой!",
+          "auto": true
+        },
+        {
+          "id": "attribute-RX-8 tu tu tu tu.png",
+          "x": 4482,
+          "y": 220,
+          "w": 34,
+          "h": 34,
+          "src": "assets/attributes/RX-8 tu tu tu tu.png",
+          "title": "RX-8 tu tu tu tu",
+          "text": "ААААА САНЯ НА RX-8 РА ТА ТА ТА ТА",
+          "auto": true
+        }
+      ],
       "coins": [
         {
           "id": "location-6-coin-1",
