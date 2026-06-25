@@ -1,3 +1,30 @@
+@font-face {
+  font-family: "Pixeloid Sans";
+  src: url("assets/fonts/PixeloidSans.woff2") format("woff2"),
+       url("assets/fonts/PixeloidSans.woff") format("woff");
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pixeloid Sans";
+  src: url("assets/fonts/PixeloidSans-Bold.woff2") format("woff2"),
+       url("assets/fonts/PixeloidSans-Bold.woff") format("woff");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pixeloid Mono";
+  src: url("assets/fonts/PixeloidMono.woff2") format("woff2"),
+       url("assets/fonts/PixeloidMono.woff") format("woff");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg: #111827;
   --panel: #f8f3d6;
@@ -20,7 +47,7 @@ body {
   height: 100%;
   min-height: 100%;
   width: 100%;
-  font-family: "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "Pixeloid Sans", "Pixeloid Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--ink);
   background:
     linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
