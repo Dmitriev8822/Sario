@@ -63,6 +63,7 @@ const LEVEL_STORAGE_KEY = "sario.levels";
 const LEVEL_DIRECTORY = "assets/levels";
 const LEVEL_MANIFEST = `${LEVEL_DIRECTORY}/manifest.json`;
 const LEVEL_TRANSITION_DURATION = 1.4;
+const GAME_FONT_FAMILY = "\"Pixeloid Sans\", \"Pixeloid Mono\", monospace";
 const LEVEL_FINISH_COOLDOWN = 0.7;
 const GRID_SIZE = 16;
 const BLOCK_TILE_VERSION = "2026-06-23";
@@ -1071,10 +1072,10 @@ function drawLevelTransition() {
 
   ctx.globalAlpha = clamp(eased + 0.05, 0, 1);
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 28px Courier New, monospace";
+  ctx.font = `900 28px ${GAME_FONT_FAMILY}`;
   ctx.textAlign = "center";
   ctx.fillText(state.transition.title || "Новая локация", VIEW.width / 2, VIEW.height / 2 - 8);
-  ctx.font = "700 16px Courier New, monospace";
+  ctx.font = `700 16px ${GAME_FONT_FAMILY}`;
   ctx.fillText(state.transition.text || "путь продолжается", VIEW.width / 2, VIEW.height / 2 + 24);
   ctx.restore();
 }
@@ -1251,7 +1252,7 @@ function drawCostumeCheckpoints() {
     pixelRect(x - 3, 0, 6, VIEW.height, "#a855f7");
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 13px Courier New, monospace";
+    ctx.font = `900 13px ${GAME_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.fillText(costume?.title || checkpoint.costume, x, 48);
     ctx.restore();
@@ -1264,7 +1265,7 @@ function drawEditorPreview() {
   ctx.save();
   ctx.globalAlpha = 0.75;
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 14px Courier New, monospace";
+  ctx.font = `800 14px ${GAME_FONT_FAMILY}`;
   ctx.textAlign = "left";
   ctx.fillText("Редактор: клик — добавить, Alt/Shift + клик — удалить", 18, 28);
   ctx.restore();
@@ -1306,7 +1307,7 @@ function drawPlayer() {
   ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
   pixelRect(x - 3, y - 30, p.w + 6, 22, "rgba(15, 23, 42, 0.78)");
   ctx.fillStyle = "#ffffff";
-  ctx.font = "700 13px Courier New, monospace";
+  ctx.font = `700 13px ${GAME_FONT_FAMILY}`;
   ctx.textAlign = "center";
   ctx.fillText(CONFIG.player.name, x + p.w / 2, y - 14);
 }
@@ -1356,7 +1357,7 @@ function drawUniversity(x, baseY, index) {
   ctx.closePath();
   ctx.fill();
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 34px Courier New, monospace";
+  ctx.font = `900 34px ${GAME_FONT_FAMILY}`;
   ctx.textAlign = "center";
   ctx.fillText("УНИ", x, baseY - 272);
 }
@@ -1370,7 +1371,7 @@ function drawOffice(x, baseY) {
     }
   }
   ctx.fillStyle = "#22c55e";
-  ctx.font = "900 46px Courier New, monospace";
+  ctx.font = `900 46px ${GAME_FONT_FAMILY}`;
   ctx.textAlign = "center";
   ctx.fillText("С", x, baseY - 338);
 }
@@ -1444,11 +1445,11 @@ function drawSign(x, y, title, number) {
   pixelRect(x - 155, y, 5, 70, PALETTE.wood);
   pixelRect(x + 150, y, 5, 70, PALETTE.wood);
   ctx.fillStyle = "#2563eb";
-  ctx.font = "900 18px Courier New, monospace";
+  ctx.font = `900 18px ${GAME_FONT_FAMILY}`;
   ctx.textAlign = "center";
   ctx.fillText(`Этап ${number}`, x, y + 25);
   ctx.fillStyle = "#0f172a";
-  ctx.font = "800 20px Courier New, monospace";
+  ctx.font = `800 20px ${GAME_FONT_FAMILY}`;
   ctx.fillText(title, x, y + 52);
 }
 
@@ -1840,6 +1841,7 @@ canvas.addEventListener("contextmenu", (event) => {
 });
 
 async function initializeGame() {
+  await document.fonts?.ready;
   await refreshLevels();
   loadSavedLevel();
   setBackgroundForCurrentLevel();
