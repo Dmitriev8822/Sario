@@ -96,6 +96,39 @@ const PLAYER_MANIFEST = `${PLAYER_DIRECTORY}/manifest.json`;
 const PLAYER_POSES = ["idle", "jump", "run1", "run2", "run3"];
 const DEFAULT_PLAYER_COSTUME = "young";
 const COSTUME_CHECKPOINT_HIT_WIDTH = GRID_SIZE * 2;
+const SOUND_STORAGE_KEY = "sario.soundEnabled";
+const SOUND_MASTER_GAIN = 0.16;
+const WALK_SOUND_INTERVAL = 0.17;
+const WALK_SOUND_SPEED_FACTOR = 0.00035;
+const SOUND_PATTERNS = {
+  jump: [
+    { type: "square", frequency: 330, endFrequency: 660, duration: 0.1, gain: 0.48 },
+    { type: "triangle", frequency: 660, endFrequency: 990, duration: 0.08, gain: 0.24, delay: 0.04 },
+  ],
+  walk: [{ type: "square", frequency: 150, endFrequency: 95, duration: 0.045, gain: 0.2 }],
+  collect: [
+    { type: "triangle", frequency: 700, endFrequency: 980, duration: 0.08, gain: 0.45 },
+    { type: "triangle", frequency: 980, endFrequency: 1320, duration: 0.1, gain: 0.38, delay: 0.06 },
+  ],
+  item: [
+    { type: "sine", frequency: 520, endFrequency: 780, duration: 0.14, gain: 0.45 },
+    { type: "sine", frequency: 780, endFrequency: 1040, duration: 0.18, gain: 0.4, delay: 0.11 },
+  ],
+  costume: [
+    { type: "sawtooth", frequency: 440, endFrequency: 880, duration: 0.18, gain: 0.24 },
+    { type: "triangle", frequency: 660, endFrequency: 1320, duration: 0.16, gain: 0.32, delay: 0.09 },
+  ],
+  respawn: [{ type: "sawtooth", frequency: 260, endFrequency: 120, duration: 0.22, gain: 0.26 }],
+  transition: [
+    { type: "sine", frequency: 330, endFrequency: 440, duration: 0.2, gain: 0.3 },
+    { type: "sine", frequency: 440, endFrequency: 660, duration: 0.25, gain: 0.28, delay: 0.16 },
+  ],
+  finish: [
+    { type: "triangle", frequency: 523.25, duration: 0.16, gain: 0.36 },
+    { type: "triangle", frequency: 659.25, duration: 0.16, gain: 0.34, delay: 0.14 },
+    { type: "triangle", frequency: 783.99, duration: 0.32, gain: 0.34, delay: 0.28 },
+  ],
+};
 const backgroundImage = new Image();
 const blockImage = new Image();
 blockImage.src = BLOCK_TILE_SRC;
@@ -438,6 +471,7 @@ const gameTopbar = document.getElementById("gameTopbar");
 const photoPlaceholder = document.querySelector(".photo-placeholder");
 const finishScreen = document.getElementById("finishScreen");
 const restartButton = document.getElementById("restartButton");
+const soundToggleButton = document.getElementById("soundToggleButton");
 const editorToggleButton = document.getElementById("editorToggleButton");
 const editorModeButton = document.getElementById("editorModeButton");
 const editorToolSelect = document.getElementById("editorToolSelect");
@@ -488,6 +522,9 @@ let totalCoins = 0;
 let editorMode = false;
 let currentLevelIndex = 0;
 let defaultLevels = [];
+let audioContext = null;
+let masterGainNode = null;
+let soundEnabled = localStorage.getItem(SOUND_STORAGE_KEY) !== "false";
 
 const state = {
   player: null,
@@ -502,6 +539,67 @@ const state = {
   transition: { active: false, elapsed: 0, targetLevelId: null, switched: false, title: "", text: "" },
 };
 
+
+
+function getAudioContext() {
+  if (!soundEnabled) return null;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+
+  if (!audioContext) {
+    audioContext = new AudioContextClass();
+    masterGainNode = audioContext.createGain();
+    masterGainNode.gain.value = SOUND_MASTER_GAIN;
+    masterGainNode.connect(audioContext.destination);
+  }
+
+  if (audioContext.state === "suspended") audioContext.resume().catch(() => undefined);
+  return audioContext;
+}
+
+function playSound(name) {
+  const context = getAudioContext();
+  const pattern = SOUND_PATTERNS[name];
+  if (!context || !masterGainNode || !pattern) return;
+
+  pattern.forEach((note) => {
+    const start = context.currentTime + (note.delay || 0);
+    const duration = note.duration || 0.12;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = note.type || "square";
+    oscillator.frequency.setValueAtTime(note.frequency, start);
+    if (note.endFrequency) oscillator.frequency.exponentialRampToValueAtTime(note.endFrequency, start + duration);
+
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(note.gain || 0.3, start + duration * 0.18);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+    oscillator.connect(gain);
+    gain.connect(masterGainNode);
+    oscillator.start(start);
+    oscillator.stop(start + duration + 0.02);
+  });
+}
+
+function updateSoundToggleUi() {
+  if (!soundToggleButton) return;
+  soundToggleButton.textContent = soundEnabled ? "Звук: вкл" : "Звук: выкл";
+  soundToggleButton.setAttribute("aria-pressed", String(soundEnabled));
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem(SOUND_STORAGE_KEY, String(soundEnabled));
+  if (masterGainNode) masterGainNode.gain.value = soundEnabled ? SOUND_MASTER_GAIN : 0;
+  updateSoundToggleUi();
+  if (soundEnabled) playSound("collect");
+}
+
+function unlockAudio() {
+  getAudioContext();
+}
 
 function cloneData(value) {
   return JSON.parse(JSON.stringify(value));
@@ -634,6 +732,7 @@ function getNextLevelId(level = getCurrentLevel()) {
 
 function startLevelTransition(targetLevelId, title = "Новая локация", text = "Путь продолжается.") {
   if (state.transition.active) return;
+  playSound("transition");
   state.transition = { active: true, elapsed: 0, targetLevelId, switched: false, title, text };
   keys.left = false;
   keys.right = false;
@@ -699,6 +798,7 @@ function createPlayer() {
     checkpointY: start.y ?? FLOOR_Y - 52,
     coins: 0,
     walkTime: 0,
+    walkSoundTimer: 0,
     costume: findDefaultCostumeAsset().id,
   };
 }
@@ -840,6 +940,7 @@ function update(dt) {
   if (keys.jump && player.grounded) {
     player.vy = -CONFIG.jumpSpeed;
     player.grounded = false;
+    playSound("jump");
     spawnDust(player.x + player.w / 2, player.y + player.h);
   }
 
@@ -877,6 +978,7 @@ function updateLevelFinish() {
 
 function finishGame() {
   state.finished = true;
+  playSound("finish");
   running = false;
   cancelAnimationFrame(rafId);
 
@@ -901,7 +1003,19 @@ function movePlayer(player, dt) {
 
   if (Math.abs(player.vx) > 10 && player.grounded) {
     player.walkTime += dt;
+    updateWalkSound(player, dt);
+  } else {
+    player.walkSoundTimer = 0;
   }
+}
+
+function updateWalkSound(player, dt) {
+  player.walkSoundTimer -= dt;
+  if (player.walkSoundTimer > 0) return;
+
+  playSound("walk");
+  const speedRatio = Math.abs(player.vx) / CONFIG.moveSpeed;
+  player.walkSoundTimer = Math.max(0.08, WALK_SOUND_INTERVAL - speedRatio * WALK_SOUND_SPEED_FACTOR * CONFIG.moveSpeed);
 }
 
 function resolveCollisions(player, axis) {
@@ -936,6 +1050,7 @@ function collectCoins(player) {
     player.coins += 1;
     state.totalCoinsCollected += 1;
     spawnSparkles(item.x + item.w / 2, item.y + item.h / 2);
+    playSound(item.type === "coin" ? "collect" : "item");
 
     if (item.type !== "coin") {
       showEventCard({ title: item.title, text: item.text });
@@ -958,6 +1073,7 @@ function updateCostumeCheckpoints() {
     if (setPlayerCostume(checkpoint.costume)) {
       state.triggeredCostumeCheckpoints.add(index);
       spawnSparkles(player.x + player.w / 2, player.y + player.h / 2);
+      playSound("costume");
     }
   });
 }
@@ -1017,6 +1133,7 @@ function respawn() {
   p.vx = 0;
   p.vy = 0;
   spawnDust(p.x + p.w / 2, p.y + p.h);
+  playSound("respawn");
 }
 
 function updateHud() {
@@ -1830,6 +1947,9 @@ function bindMobileControls() {
 
 restartButton.addEventListener("click", startGame);
 playAgainButton.addEventListener("click", startGame);
+soundToggleButton?.addEventListener("click", toggleSound);
+window.addEventListener("pointerdown", unlockAudio, { once: true });
+window.addEventListener("keydown", unlockAudio, { once: true });
 editorToggleButton.addEventListener("click", toggleEditorMode);
 editorModeButton.addEventListener("click", toggleEditorMode);
 editorLevelSelect.addEventListener("change", () => selectEditorLevel(editorLevelSelect.value));
@@ -1849,6 +1969,7 @@ async function initializeGame() {
   updateEditorCostumeSelect();
   updateEditorLevelSelect();
   updateEditorUi();
+  updateSoundToggleUi();
   bindMobileControls();
   await Promise.all([refreshAttributeAssets(), refreshCostumeAssets()]);
   startGame();
