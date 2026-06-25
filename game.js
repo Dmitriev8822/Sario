@@ -98,8 +98,14 @@ const DEFAULT_PLAYER_COSTUME = "young";
 const COSTUME_CHECKPOINT_HIT_WIDTH = GRID_SIZE * 2;
 const SOUND_STORAGE_KEY = "sario.soundEnabled";
 const SOUND_MASTER_GAIN = 0.16;
+const WALK_SOUND_INTERVAL = 0.17;
+const WALK_SOUND_SPEED_FACTOR = 0.00035;
 const SOUND_PATTERNS = {
-  jump: [{ type: "square", frequency: 360, endFrequency: 620, duration: 0.12, gain: 0.5 }],
+  jump: [
+    { type: "square", frequency: 330, endFrequency: 660, duration: 0.1, gain: 0.48 },
+    { type: "triangle", frequency: 660, endFrequency: 990, duration: 0.08, gain: 0.24, delay: 0.04 },
+  ],
+  walk: [{ type: "square", frequency: 150, endFrequency: 95, duration: 0.045, gain: 0.2 }],
   collect: [
     { type: "triangle", frequency: 700, endFrequency: 980, duration: 0.08, gain: 0.45 },
     { type: "triangle", frequency: 980, endFrequency: 1320, duration: 0.1, gain: 0.38, delay: 0.06 },
@@ -792,6 +798,7 @@ function createPlayer() {
     checkpointY: start.y ?? FLOOR_Y - 52,
     coins: 0,
     walkTime: 0,
+    walkSoundTimer: 0,
     costume: findDefaultCostumeAsset().id,
   };
 }
@@ -996,7 +1003,19 @@ function movePlayer(player, dt) {
 
   if (Math.abs(player.vx) > 10 && player.grounded) {
     player.walkTime += dt;
+    updateWalkSound(player, dt);
+  } else {
+    player.walkSoundTimer = 0;
   }
+}
+
+function updateWalkSound(player, dt) {
+  player.walkSoundTimer -= dt;
+  if (player.walkSoundTimer > 0) return;
+
+  playSound("walk");
+  const speedRatio = Math.abs(player.vx) / CONFIG.moveSpeed;
+  player.walkSoundTimer = Math.max(0.08, WALK_SOUND_INTERVAL - speedRatio * WALK_SOUND_SPEED_FACTOR * CONFIG.moveSpeed);
 }
 
 function resolveCollisions(player, axis) {
