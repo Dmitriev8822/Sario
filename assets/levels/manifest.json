@@ -1066,7 +1066,7 @@
       "id": "location-5",
       "title": "Локация 5",
       "background": "assets/background/5.png",
-      "upperBackground": "",
+      "upperBackground": "assets/background/5_up.png",
       "worldWidth": 6623,
       "start": {
         "x": 80,
