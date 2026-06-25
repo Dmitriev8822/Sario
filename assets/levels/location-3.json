@@ -132,7 +132,28 @@
     }
   ],
   "items": [],
-  "costumeCheckpoints": [],
+  "costumeCheckpoints": [
+    {
+      "x": 96,
+      "costume": "school"
+    },
+    {
+      "x": 80,
+      "costume": "school"
+    },
+    {
+      "x": 112,
+      "costume": "school"
+    },
+    {
+      "x": 128,
+      "costume": "school"
+    },
+    {
+      "x": 64,
+      "costume": "school"
+    }
+  ],
   "events": [],
   "coins": [
     {

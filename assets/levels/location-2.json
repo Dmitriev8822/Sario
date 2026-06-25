@@ -131,7 +131,44 @@
     }
   ],
   "items": [],
-  "costumeCheckpoints": [],
+  "costumeCheckpoints": [
+    {
+      "x": 48,
+      "costume": "army"
+    },
+    {
+      "x": 80,
+      "costume": "army"
+    },
+    {
+      "x": 128,
+      "costume": "army"
+    },
+    {
+      "x": 160,
+      "costume": "army"
+    },
+    {
+      "x": 192,
+      "costume": "army"
+    },
+    {
+      "x": 112,
+      "costume": "army"
+    },
+    {
+      "x": 112,
+      "costume": "army"
+    },
+    {
+      "x": 96,
+      "costume": "army"
+    },
+    {
+      "x": 144,
+      "costume": "army"
+    }
+  ],
   "events": [],
   "coins": [
     {

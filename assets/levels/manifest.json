@@ -268,7 +268,12 @@
           "h": 22
         }
       ],
-      "costumeCheckpoints": [],
+      "costumeCheckpoints": [
+        {
+          "x": 4656,
+          "costume": "school"
+        }
+      ],
       "events": [],
       "nextLevel": "location-2",
       "transitionTitle": "Новая локация",
@@ -542,7 +547,44 @@
           "h": 22
         }
       ],
-      "costumeCheckpoints": [],
+      "costumeCheckpoints": [
+        {
+          "x": 48,
+          "costume": "army"
+        },
+        {
+          "x": 80,
+          "costume": "army"
+        },
+        {
+          "x": 128,
+          "costume": "army"
+        },
+        {
+          "x": 160,
+          "costume": "army"
+        },
+        {
+          "x": 192,
+          "costume": "army"
+        },
+        {
+          "x": 112,
+          "costume": "army"
+        },
+        {
+          "x": 112,
+          "costume": "army"
+        },
+        {
+          "x": 96,
+          "costume": "army"
+        },
+        {
+          "x": 144,
+          "costume": "army"
+        }
+      ],
       "events": [],
       "nextLevel": "location-3",
       "transitionTitle": "Новая локация",
@@ -816,7 +858,28 @@
           "h": 22
         }
       ],
-      "costumeCheckpoints": [],
+      "costumeCheckpoints": [
+        {
+          "x": 96,
+          "costume": "school"
+        },
+        {
+          "x": 80,
+          "costume": "school"
+        },
+        {
+          "x": 112,
+          "costume": "school"
+        },
+        {
+          "x": 128,
+          "costume": "school"
+        },
+        {
+          "x": 64,
+          "costume": "school"
+        }
+      ],
       "events": [],
       "nextLevel": "location-4",
       "transitionTitle": "Новая локация",
@@ -1084,7 +1147,32 @@
           "h": 22
         }
       ],
-      "costumeCheckpoints": [],
+      "costumeCheckpoints": [
+        {
+          "x": 96,
+          "costume": "moscow"
+        },
+        {
+          "x": 112,
+          "costume": "moscow"
+        },
+        {
+          "x": 80,
+          "costume": "moscow"
+        },
+        {
+          "x": 64,
+          "costume": "moscow"
+        },
+        {
+          "x": 112,
+          "costume": "moscow"
+        },
+        {
+          "x": 128,
+          "costume": "moscow"
+        }
+      ],
       "events": [],
       "nextLevel": "location-5",
       "transitionTitle": "Новая локация",
