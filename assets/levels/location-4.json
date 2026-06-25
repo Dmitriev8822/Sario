@@ -2,6 +2,7 @@
   "id": "location-4",
   "title": "Локация 4",
   "background": "assets/background/4.png",
+  "upperBackground": "assets/background/4_up.png",
   "worldWidth": 6623,
   "start": {
     "x": 80,
