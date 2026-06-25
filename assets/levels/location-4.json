@@ -135,7 +135,32 @@
     }
   ],
   "items": [],
-  "costumeCheckpoints": [],
+  "costumeCheckpoints": [
+    {
+      "x": 96,
+      "costume": "moscow"
+    },
+    {
+      "x": 112,
+      "costume": "moscow"
+    },
+    {
+      "x": 80,
+      "costume": "moscow"
+    },
+    {
+      "x": 64,
+      "costume": "moscow"
+    },
+    {
+      "x": 112,
+      "costume": "moscow"
+    },
+    {
+      "x": 128,
+      "costume": "moscow"
+    }
+  ],
   "events": [],
   "coins": [
     {
