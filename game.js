@@ -27,25 +27,25 @@ const CONFIG = {
   level: {
     blocks: [
       { x: 360, y: 286, w: 124, h: 18 },
-      { x: 620, y: 254, w: 112, h: 18 },
-      { x: 910, y: 224, w: 128, h: 18 },
+      { x: 620, y: 262, w: 112, h: 18 },
+      { x: 910, y: 262, w: 128, h: 18 },
       { x: 1210, y: 270, w: 116, h: 18 },
-      { x: 1510, y: 238, w: 150, h: 18 },
+      { x: 1510, y: 262, w: 150, h: 18 },
       { x: 1840, y: 292, w: 128, h: 18 },
-      { x: 2140, y: 260, w: 116, h: 18 },
-      { x: 2440, y: 224, w: 132, h: 18 },
+      { x: 2140, y: 262, w: 116, h: 18 },
+      { x: 2440, y: 262, w: 132, h: 18 },
       { x: 2780, y: 268, w: 108, h: 18 },
-      { x: 3090, y: 236, w: 150, h: 18 },
+      { x: 3090, y: 262, w: 150, h: 18 },
       { x: 3430, y: 286, w: 120, h: 18 },
-      { x: 3740, y: 252, w: 132, h: 18 },
-      { x: 4070, y: 224, w: 116, h: 18 },
+      { x: 3740, y: 262, w: 132, h: 18 },
+      { x: 4070, y: 262, w: 116, h: 18 },
       { x: 4380, y: 272, w: 154, h: 18 },
-      { x: 4740, y: 240, w: 126, h: 18 },
+      { x: 4740, y: 262, w: 126, h: 18 },
       { x: 5070, y: 292, w: 114, h: 18 },
-      { x: 5370, y: 258, w: 148, h: 18 },
-      { x: 5710, y: 224, w: 122, h: 18 },
+      { x: 5370, y: 262, w: 148, h: 18 },
+      { x: 5710, y: 262, w: 122, h: 18 },
       { x: 6040, y: 270, w: 142, h: 18 },
-      { x: 6380, y: 238, w: 120, h: 18 },
+      { x: 6380, y: 262, w: 120, h: 18 },
       { x: 6660, y: 286, w: 150, h: 18 },
     ],
     items: [],
@@ -493,6 +493,7 @@ const finishStats = document.getElementById("finishStats");
 
 const VIEW = { width: 1280, height: 340 };
 const FLOOR_Y = 324;
+const MAX_JUMPABLE_BLOCK_HEIGHT = 64;
 const PIXEL = 2;
 const PALETTE = {
   ink: "#111827",
@@ -615,7 +616,7 @@ function normalizeLevel(level, index = 0) {
     worldWidth: level.worldWidth || CONFIG.worldWidth,
     start: { x: 80, y: FLOOR_Y - 52, ...(level.start || {}) },
     finishDistance: level.finishDistance ?? 240,
-    blocks: Array.isArray(level.blocks) ? level.blocks : cloneData(fallback.blocks || []),
+    blocks: (Array.isArray(level.blocks) ? level.blocks : cloneData(fallback.blocks || [])).map(normalizeJumpableBlock),
     items: Array.isArray(level.items) ? level.items : cloneData(fallback.items || []),
     coins: Array.isArray(level.coins) ? level.coins : cloneData(fallback.coins || []),
     costumeCheckpoints: Array.isArray(level.costumeCheckpoints) ? level.costumeCheckpoints : [],
@@ -663,6 +664,20 @@ function selectEditorLevel(levelId) {
 
 function getCurrentEvents() {
   return getCurrentLevel().events || CONFIG.events || [];
+}
+
+function normalizeJumpableBlock(block) {
+  const sourceW = block.w ?? DEFAULT_BLOCK_SIZE.w / AIR_BLOCK_WIDTH_SCALE;
+  const sourceH = block.h ?? DEFAULT_BLOCK_SIZE.h / AIR_BLOCK_HEIGHT_SCALE;
+  const renderedH = Math.max(AIR_BLOCK_TILE_HEIGHT, Math.round(sourceH * AIR_BLOCK_HEIGHT_SCALE));
+  const minSourceY = FLOOR_Y - MAX_JUMPABLE_BLOCK_HEIGHT - sourceH + renderedH;
+
+  return {
+    ...block,
+    y: Math.max(block.y ?? minSourceY, minSourceY),
+    w: sourceW,
+    h: sourceH,
+  };
 }
 
 function getTotalCollectiblesCount() {
@@ -1728,7 +1743,7 @@ function loadSavedLevel() {
       updateEditorLevelSelect();
     } else {
       const level = getCurrentLevel();
-      if (Array.isArray(saved.blocks)) level.blocks = saved.blocks;
+      if (Array.isArray(saved.blocks)) level.blocks = saved.blocks.map(normalizeJumpableBlock);
       if (Array.isArray(saved.items)) level.items = saved.items;
       if (Array.isArray(saved.coins)) level.coins = saved.coins;
       if (Array.isArray(saved.costumeCheckpoints)) level.costumeCheckpoints = saved.costumeCheckpoints;
@@ -1822,12 +1837,12 @@ function createEditorBlock(x, y) {
   const sourceW = Math.round(DEFAULT_BLOCK_SIZE.w / AIR_BLOCK_WIDTH_SCALE);
   const sourceH = Math.round(DEFAULT_BLOCK_SIZE.h / AIR_BLOCK_HEIGHT_SCALE);
 
-  return {
+  return normalizeJumpableBlock({
     x: Math.round(x - (sourceW - DEFAULT_BLOCK_SIZE.w) / 2),
     y: Math.round(y - (sourceH - DEFAULT_BLOCK_SIZE.h)),
     w: sourceW,
     h: sourceH,
-  };
+  });
 }
 
 function createEditorItem(x, y) {
