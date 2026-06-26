@@ -8,6 +8,11 @@ const CONFIG = {
   finalTitle: "С днем рождения, Саша!",
   finalText:
     "Ты прошёл все локации — праздник начинается!",
+  performance: {
+    // Верхняя панорама тоже едет с камерой, но через transform у <img>,
+    // чтобы браузер композил слой без дорогого CSS background-position repaint.
+    syncUpperBackgroundWithCamera: true,
+  },
   // Ширина мира совпадает с панорамным фоном, масштабированным под высоту VIEW.
   worldWidth: 6623,
   gravity: 2100,
@@ -472,6 +477,13 @@ function isSpriteReady(sprite) {
 const gameShell = document.getElementById("gameShell");
 const gameTopbar = document.getElementById("gameTopbar");
 const photoPlaceholder = document.querySelector(".photo-placeholder");
+const photoBackgroundImage = document.createElement("img");
+photoBackgroundImage.className = "photo-placeholder__image";
+photoBackgroundImage.alt = "";
+photoBackgroundImage.decoding = "async";
+let photoBackgroundMaxOffset = 0;
+photoBackgroundImage.addEventListener("load", updatePhotoBackgroundMetrics);
+photoPlaceholder?.append(photoBackgroundImage);
 const finishScreen = document.getElementById("finishScreen");
 const restartButton = document.getElementById("restartButton");
 const soundToggleButton = document.getElementById("soundToggleButton");
@@ -700,6 +712,8 @@ function setBackgroundForCurrentLevel() {
   if (photoPlaceholder) {
     const upperBackground = level.upperBackground || nextSrc;
     photoPlaceholder.style.backgroundImage = `url("${upperBackground}")`;
+    if (!photoBackgroundImage.src.endsWith(upperBackground)) photoBackgroundImage.src = upperBackground;
+    updatePhotoBackgroundMetrics();
   }
 }
 
@@ -1096,11 +1110,23 @@ function updateCostumeCheckpoints() {
   });
 }
 
-function syncPhotoBackgroundWithCamera() {
+function updatePhotoBackgroundMetrics() {
   if (!photoPlaceholder) return;
+  const placeholderRect = photoPlaceholder.getBoundingClientRect();
+  const imageRatio = photoBackgroundImage.naturalWidth && photoBackgroundImage.naturalHeight
+    ? photoBackgroundImage.naturalWidth / photoBackgroundImage.naturalHeight
+    : 1;
+  const imageWidth = placeholderRect.height * imageRatio;
+  photoBackgroundMaxOffset = Math.max(0, imageWidth - placeholderRect.width);
+  syncPhotoBackgroundWithCamera();
+}
+
+function syncPhotoBackgroundWithCamera() {
+  if (!photoPlaceholder || !CONFIG.performance.syncUpperBackgroundWithCamera) return;
   const maxCameraX = Math.max(1, getCurrentWorldWidth() - VIEW.width);
   const scrollProgress = clamp(cameraX / maxCameraX, 0, 1);
-  photoPlaceholder.style.setProperty("--photo-bg-position", `${scrollProgress * 100}%`);
+
+  photoBackgroundImage.style.transform = `translate3d(${-photoBackgroundMaxOffset * scrollProgress}px, 0, 0)`;
 }
 
 function updateCamera() {
@@ -1997,6 +2023,7 @@ playAgainButton.addEventListener("click", startGame);
 soundToggleButton?.addEventListener("click", toggleSound);
 window.addEventListener("pointerdown", unlockAudio, { once: true });
 window.addEventListener("keydown", unlockAudio, { once: true });
+window.addEventListener("resize", updatePhotoBackgroundMetrics);
 editorToggleButton?.addEventListener("click", toggleEditorMode);
 editorModeButton.addEventListener("click", toggleEditorMode);
 editorLevelSelect.addEventListener("change", () => selectEditorLevel(editorLevelSelect.value));
