@@ -98,36 +98,45 @@ const PLAYER_POSES = ["idle", "jump", "run1", "run2", "run3"];
 const DEFAULT_PLAYER_COSTUME = "young";
 const COSTUME_CHECKPOINT_HIT_WIDTH = GRID_SIZE * 2;
 const SOUND_STORAGE_KEY = "sario.soundEnabled";
-const SOUND_MASTER_GAIN = 0.16;
-const WALK_SOUND_INTERVAL = 0.17;
-const WALK_SOUND_SPEED_FACTOR = 0.00035;
+const SOUND_MASTER_GAIN = 0.13;
+const WALK_SOUND_INTERVAL = 0.19;
+const WALK_SOUND_SPEED_FACTOR = 0.00032;
 const SOUND_PATTERNS = {
+  // Classic platformer-style SFX: short chiptune notes, soft triangle leads, and quick pitch sweeps.
   jump: [
-    { type: "square", frequency: 330, endFrequency: 660, duration: 0.1, gain: 0.48 },
-    { type: "triangle", frequency: 660, endFrequency: 990, duration: 0.08, gain: 0.24, delay: 0.04 },
+    { type: "square", frequency: 392, endFrequency: 784, duration: 0.12, gain: 0.3 },
+    { type: "triangle", frequency: 523.25, endFrequency: 1046.5, duration: 0.1, gain: 0.18, delay: 0.03 },
   ],
-  walk: [{ type: "square", frequency: 150, endFrequency: 95, duration: 0.045, gain: 0.2 }],
+  walk: [{ type: "triangle", frequency: 120, endFrequency: 82, duration: 0.04, gain: 0.12 }],
   collect: [
-    { type: "triangle", frequency: 700, endFrequency: 980, duration: 0.08, gain: 0.45 },
-    { type: "triangle", frequency: 980, endFrequency: 1320, duration: 0.1, gain: 0.38, delay: 0.06 },
+    { type: "triangle", frequency: 987.77, duration: 0.07, gain: 0.34 },
+    { type: "triangle", frequency: 1318.51, duration: 0.09, gain: 0.3, delay: 0.055 },
   ],
   item: [
-    { type: "sine", frequency: 520, endFrequency: 780, duration: 0.14, gain: 0.45 },
-    { type: "sine", frequency: 780, endFrequency: 1040, duration: 0.18, gain: 0.4, delay: 0.11 },
+    { type: "square", frequency: 659.25, duration: 0.08, gain: 0.26 },
+    { type: "square", frequency: 783.99, duration: 0.08, gain: 0.24, delay: 0.08 },
+    { type: "square", frequency: 987.77, duration: 0.14, gain: 0.22, delay: 0.16 },
   ],
   costume: [
-    { type: "sawtooth", frequency: 440, endFrequency: 880, duration: 0.18, gain: 0.24 },
-    { type: "triangle", frequency: 660, endFrequency: 1320, duration: 0.16, gain: 0.32, delay: 0.09 },
+    { type: "triangle", frequency: 523.25, duration: 0.08, gain: 0.26 },
+    { type: "triangle", frequency: 659.25, duration: 0.08, gain: 0.24, delay: 0.075 },
+    { type: "triangle", frequency: 783.99, duration: 0.08, gain: 0.23, delay: 0.15 },
+    { type: "triangle", frequency: 1046.5, duration: 0.18, gain: 0.21, delay: 0.225 },
   ],
-  respawn: [{ type: "sawtooth", frequency: 260, endFrequency: 120, duration: 0.22, gain: 0.26 }],
+  respawn: [
+    { type: "sawtooth", frequency: 392, endFrequency: 196, duration: 0.16, gain: 0.2 },
+    { type: "triangle", frequency: 196, endFrequency: 98, duration: 0.2, gain: 0.16, delay: 0.1 },
+  ],
   transition: [
-    { type: "sine", frequency: 330, endFrequency: 440, duration: 0.2, gain: 0.3 },
-    { type: "sine", frequency: 440, endFrequency: 660, duration: 0.25, gain: 0.28, delay: 0.16 },
+    { type: "triangle", frequency: 392, duration: 0.1, gain: 0.22 },
+    { type: "triangle", frequency: 523.25, duration: 0.1, gain: 0.21, delay: 0.09 },
+    { type: "triangle", frequency: 659.25, duration: 0.18, gain: 0.19, delay: 0.18 },
   ],
   finish: [
-    { type: "triangle", frequency: 523.25, duration: 0.16, gain: 0.36 },
-    { type: "triangle", frequency: 659.25, duration: 0.16, gain: 0.34, delay: 0.14 },
-    { type: "triangle", frequency: 783.99, duration: 0.32, gain: 0.34, delay: 0.28 },
+    { type: "triangle", frequency: 523.25, duration: 0.12, gain: 0.3 },
+    { type: "triangle", frequency: 659.25, duration: 0.12, gain: 0.29, delay: 0.11 },
+    { type: "triangle", frequency: 783.99, duration: 0.12, gain: 0.28, delay: 0.22 },
+    { type: "triangle", frequency: 1046.5, duration: 0.28, gain: 0.26, delay: 0.34 },
   ],
 };
 const backgroundImage = new Image();
