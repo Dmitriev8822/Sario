@@ -1231,16 +1231,14 @@ function drawSky() {
 
 function drawWorldBackground(image) {
   const scale = Math.max(VIEW.width / image.naturalWidth, VIEW.height / image.naturalHeight);
-  const drawWidth = image.naturalWidth * scale;
-  const drawHeight = image.naturalHeight * scale;
-  const maxOffsetX = Math.max(0, drawWidth - VIEW.width);
+  const sourceWidth = Math.min(image.naturalWidth, VIEW.width / scale);
+  const sourceHeight = Math.min(image.naturalHeight, VIEW.height / scale);
   const maxCameraX = Math.max(1, getCurrentWorldWidth() - VIEW.width);
   const scrollProgress = clamp(cameraX / maxCameraX, 0, 1);
+  const sourceX = (image.naturalWidth - sourceWidth) * scrollProgress;
+  const sourceY = (image.naturalHeight - sourceHeight) / 2;
 
-  const drawX = -maxOffsetX * scrollProgress;
-  const drawY = (VIEW.height - drawHeight) / 2;
-
-  ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+  ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, VIEW.width, VIEW.height);
 }
 
 function drawParallax() {
@@ -1323,18 +1321,27 @@ function drawAirBlock(x, y, w, h) {
 }
 
 function drawBlockTileSurface(x, y, w, h, tileWidth, tileHeight = tileWidth) {
+  const visibleX = Math.max(x, 0);
+  const visibleY = Math.max(y, 0);
+  const visibleRight = Math.min(x + w, VIEW.width);
+  const visibleBottom = Math.min(y + h, VIEW.height);
+  if (visibleX >= visibleRight || visibleY >= visibleBottom) return;
+
   if (!blockImage.complete || blockImage.naturalWidth <= 0) {
-    pixelRect(x, y, w, h, PALETTE.wood);
+    pixelRect(visibleX, visibleY, visibleRight - visibleX, visibleBottom - visibleY, PALETTE.wood);
     return;
   }
 
+  const firstTileX = x + Math.floor((visibleX - x) / tileWidth) * tileWidth;
+  const firstTileY = y + Math.floor((visibleY - y) / tileHeight) * tileHeight;
+
   ctx.save();
   ctx.beginPath();
-  ctx.rect(x, y, w, h);
+  ctx.rect(visibleX, visibleY, visibleRight - visibleX, visibleBottom - visibleY);
   ctx.clip();
 
-  for (let tileX = x; tileX < x + w; tileX += tileWidth) {
-    for (let tileY = y; tileY < y + h; tileY += tileHeight) {
+  for (let tileX = firstTileX; tileX < visibleRight; tileX += tileWidth) {
+    for (let tileY = firstTileY; tileY < visibleBottom; tileY += tileHeight) {
       ctx.drawImage(blockImage, tileX, tileY, tileWidth, tileHeight);
     }
   }
