@@ -132,6 +132,10 @@ const SOUND_PATTERNS = {
 };
 const backgroundImage = new Image();
 const blockImage = new Image();
+let blockTileCache = null;
+blockImage.addEventListener("load", () => {
+  blockTileCache = createImageTileCache(blockImage);
+});
 blockImage.src = BLOCK_TILE_SRC;
 let attributeAssets = ATTRIBUTE_FALLBACK_FILES.map(createAttributeAsset);
 let costumeAssets = [createCostumeAsset(DEFAULT_PLAYER_COSTUME)];
@@ -1227,11 +1231,21 @@ function drawWorldBackground(image) {
   const maxOffsetX = Math.max(0, drawWidth - VIEW.width);
   const maxCameraX = Math.max(1, getCurrentWorldWidth() - VIEW.width);
   const scrollProgress = clamp(cameraX / maxCameraX, 0, 1);
-
-  const drawX = -maxOffsetX * scrollProgress;
+  const visibleSourceWidth = Math.min(image.naturalWidth, VIEW.width / scale);
+  const sourceX = maxOffsetX > 0 ? (image.naturalWidth - visibleSourceWidth) * scrollProgress : 0;
   const drawY = (VIEW.height - drawHeight) / 2;
 
-  ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+  ctx.drawImage(
+    image,
+    sourceX,
+    0,
+    visibleSourceWidth,
+    image.naturalHeight,
+    0,
+    drawY,
+    VIEW.width,
+    drawHeight,
+  );
 }
 
 function drawParallax() {
@@ -1313,20 +1327,37 @@ function drawAirBlock(x, y, w, h) {
   drawBlockTileSurface(x, y, w, h, AIR_BLOCK_TILE_WIDTH, AIR_BLOCK_TILE_HEIGHT);
 }
 
+function createImageTileCache(image) {
+  const cache = document.createElement("canvas");
+  cache.width = GROUND_BLOCK_TILE_SIZE;
+  cache.height = GROUND_BLOCK_TILE_SIZE;
+  cache.getContext("2d").drawImage(image, 0, 0, cache.width, cache.height);
+  return cache;
+}
+
 function drawBlockTileSurface(x, y, w, h, tileWidth, tileHeight = tileWidth) {
-  if (!blockImage.complete || blockImage.naturalWidth <= 0) {
+  const tileSource = blockTileCache || blockImage;
+  if (!tileSource || !blockImage.complete || blockImage.naturalWidth <= 0) {
     pixelRect(x, y, w, h, PALETTE.wood);
     return;
   }
+
+  const left = Math.max(x, -tileWidth);
+  const right = Math.min(x + w, VIEW.width + tileWidth);
+  const top = Math.max(y, -tileHeight);
+  const bottom = Math.min(y + h, VIEW.height + tileHeight);
+  if (left >= right || top >= bottom) return;
 
   ctx.save();
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
 
-  for (let tileX = x; tileX < x + w; tileX += tileWidth) {
-    for (let tileY = y; tileY < y + h; tileY += tileHeight) {
-      ctx.drawImage(blockImage, tileX, tileY, tileWidth, tileHeight);
+  const startX = x + Math.floor((left - x) / tileWidth) * tileWidth;
+  const startY = y + Math.floor((top - y) / tileHeight) * tileHeight;
+  for (let tileX = startX; tileX < right; tileX += tileWidth) {
+    for (let tileY = startY; tileY < bottom; tileY += tileHeight) {
+      ctx.drawImage(tileSource, tileX, tileY, tileWidth, tileHeight);
     }
   }
 
